@@ -1,9 +1,8 @@
-haskell-mode (1.4.2-1) unstable; urgency=medium
+haskell-mode (1.4.2-1) unstable; urgency=low
 
   * New upstream release
-  * debian/rules: Install debian/conffiles, closes: #132210.
 
- -- Antti-Juhani Kaijanaho <gaia@iki.fi>  Sat, 16 Feb 2002 21:52:32 +0200
+ -- Antti-Juhani Kaijanaho <ajk@debian.org>  Sat, 16 Feb 2002 21:41:15 +0200
 
 haskell-mode (1.4.1-1) unstable; urgency=low
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+ 
+set -e
+
+. /usr/share/debconf/confmodule
+
+if [ "$1" = "configure" ] && dpkg --compare-versions "$2" lt-nl 1.4-1; then
+    db_input high haskell_mode/ghc_added || true
+    db_go
+fi

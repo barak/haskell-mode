@@ -2,11 +2,12 @@
 
 ;; Copyright (C) 1992, 1997-1998 Simon Marlow, Graeme E Moss, and Tommy Thorn
 
-;; Authors: 1997-1998 Graeme E Moss <gem@cs.york.ac.uk> and
+;; Authors: 1992      Simon Marlow
+;;          1997-1998 Graeme E Moss <gem@cs.york.ac.uk> and
 ;;                    Tommy Thorn <thorn@irisa.fr>,
-;;          1992 Simon Marlow
+;;          2001-2002 Reuben Thomas (>=v1.4)
 ;; Keywords: faces files Haskell
-;; Version: 1.3
+;; Version: 1.42
 ;; URL: http://www.haskell.org/haskell-mode/
 
 ;;; This file is not part of GNU Emacs.
@@ -51,6 +52,9 @@
 ;;
 ;; `haskell-hugs', Guy Lapalme
 ;;   Interaction with Hugs interpreter.
+;;
+;; `haskell-ghci', Chris Web
+;;   Interaction with GHCi interpreter.
 ;;
 ;;
 ;; This mode supports full Latin1 Haskell 1.4 including literate scripts.
@@ -112,6 +116,17 @@
 ;; thorn@irisa.fr quoting the version of the mode you are using, the
 ;; version of emacs you are using, and a small example of the problem
 ;; or suggestion.
+;;
+;; Version 1.42:
+;;   Added autoload for GHCi inferior mode (thanks to Scott 
+;;   Williams for the bug report and fix).
+;;
+;; Version 1.41:
+;;   Improved packaging, and made a couple more variables
+;;   interactively settable.
+;;
+;; Version 1.4:
+;;   Added GHCi mode from Chris Webb, and tidied up a little.
 ;;
 ;; Version 1.3:
 ;;   The literate or non-literate style of a buffer is now indicated
@@ -178,12 +193,18 @@
 ;;; All functions/variables start with `(literate-)haskell-'.
 
 ;; Version of mode.
-(defconst haskell-version "1.3"
+(defconst haskell-version "1.41"
   "haskell-mode version number.")
 (defun haskell-version ()
   "Echo the current version of haskell-mode in the minibuffer."
   (interactive)
   (message "Using haskell-mode version %s" haskell-version))
+
+;; Haskell-like function for creating [from..to].
+(defun haskell-enum-from-to (from to)
+  (if (> from to)
+      ()
+    (cons from (haskell-enum-from-to (1+ from) to))))
 
 ;; Set up autoloads for the modules we supply
 (autoload 'turn-on-haskell-font-lock "haskell-font-lock"
@@ -198,6 +219,8 @@
   "Turn on simple Haskell indentation." t)
 (autoload 'turn-on-haskell-hugs "haskell-hugs"
   "Turn on interaction with a Hugs interpreter." t)
+(autoload 'turn-on-haskell-ghci "haskell-ghci"
+  "Turn on interaction with a GHCi interpreter." t)
 
 ;; Are we running FSF Emacs or XEmacs?
 (defvar haskell-running-xemacs
@@ -236,12 +259,6 @@ be set to the preferred literate style.  For example, place within
                    (let ((keymap (make-sparse-keymap)))
                      (define-key keymap "\C-c\C-c" 'comment-region)
                      keymap))))
-
-;; Haskell-like function for creating [from..to].
-(defun haskell-enum-from-to (from to)
-  (if (> from to)
-      ()
-    (cons from (haskell-enum-from-to (1+ from) to))))
 
 ;; Syntax table.
 (defvar haskell-mode-syntax-table nil

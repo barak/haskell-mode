@@ -1,0 +1,10 @@
+#!/bin/sh
+ 
+set -e
+ 
+package=haskell-mode
+ 
+# FHS transition
+if [ -L /usr/doc/$package ]; then
+   rm -f /usr/doc/$package
+fi

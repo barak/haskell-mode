@@ -199,7 +199,7 @@
 ;; All functions/variables start with `(literate-)haskell-'.
 
 ;; Version of mode.
-(defconst haskell-version "2.0"
+(defconst haskell-version "1.43"
   "`haskell-mode' version number.")
 (defun haskell-version ()
   "Echo the current version of `haskell-mode' in the minibuffer."

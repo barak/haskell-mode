@@ -1,9 +1,10 @@
-This package was debianized by Tommi Virtanen tv@debian.org on
-Wed, 30 Dec 1998 03:26:04 +0200.
+This package was debianized by Tommi Virtanen tv@debian.org and is
+currently maintained by Antti-Juhani Kaijanaho <ajk@debian.org>.
 
-It was downloaded from http://www.haskell.org/haskell-mode/
+It was downloaded from 
+  http://www.haskell.org/haskell-mode/haskell-mode-1.41.tar.gz
 
-Upstream Author(s):
+Upstream Authors:
  -The Base:		Graeme E Moss <gem@cs.york.ac.uk>
  			and Tommy Thorn
  -Font Locking:	 	Graeme E Moss and Tommy Thorn

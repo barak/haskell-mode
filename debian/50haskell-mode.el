@@ -27,3 +27,4 @@
 ;(add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
 ;(add-hook 'haskell-mode-hook 'turn-on-haskell-hugs)
 ;(add-hook 'haskell-mode-hook 'turn-on-haskell-ghci)
+(debian-pkg-add-load-path-item "/usr/share/emacs/site-lisp/haskell-mode")

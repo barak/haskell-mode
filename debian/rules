@@ -13,14 +13,13 @@ debian/stamp/binary/indep: debian/stamp/binary/haskell-mode
 debian/stamp/binary/haskell-mode: package=haskell-mode
 debian/stamp/binary/haskell-mode: debian/stamp/build
 	$(prebinary)
-	$(install_dir) $(elispdir)
+	$(install_dir) $(elispdir)/haskell-mode
 	$(install_dir) $(emacs_d_dir)
 	$(install_script) debian/config $(ctldir)
 	$(install_nonex) debian/templates debian/conffiles $(ctldir)
 	$(install_script) debian/postrm.haskell-mode $(ctldir)/postrm
-	$(install_nonex) *.el $(elispdir)
+	$(install_nonex) *.el $(elispdir)/haskell-mode
 	$(install_nonex) debian/50haskell-mode.el $(emacs_d_dir)
 	$(install_nonex) debian/README.debian $(docdir)/README.Debian
 	$(postbinary)
 	touch $@
-

@@ -5,10 +5,3 @@ set -e
 package=haskell-mode
 
 . /usr/share/debconf/confmodule
- 
-# FHS transition
-if [ -d /usr/doc ]; then
-   if [ ! -e /usr/doc/$package -a -d /usr/share/doc/$package ]; then
-      ln -s ../share/doc/$package /usr/doc/$package
-   fi
-fi

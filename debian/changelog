@@ -1,3 +1,90 @@
+haskell-mode (2.0-1) unstable; urgency=low
+
+  * New upstream release. closes: 281998.
+
+  * Updated copyright file to show new Debian and upstream maintainers.
+    closes: 286769
+
+  * keybindings C-c <char> have been replaced by C-c C-<char> so as not to
+    collide with minor modes.
+  
+  * The following modules are now automatically activated without having
+    to add anything to haskell-mode-hook: haskell-font-lock (just turn on
+    global-font-lock-mode).  haskell-decl-scan (just bind `imenu' to some
+    key).
+  
+  * In recent Emacsen, haskell-doc hooks into eldoc-mode.
+  
+  * haskell-hugs and haskell-ghci are superceded by inf-haskell.
+  
+  * Indentation rules have been improved when using layout inside parens/braces.
+  
+  * Symbols like -> and \ can be displayed as actual arrows and lambdas.
+    See haskell-font-lock-symbols.
+  
+  * Tweaks to the font-lock settings.  Among other things paren-matching
+    with things like \(x,y) should work correctly now.
+  
+  * New upstream maintainer <monnier@gnu.org>.
+
+ -- Isaac Jones <ijones@debian.org>  Wed, 22 Dec 2004 02:14:02 -0500
+
+haskell-mode (1.45-2) unstable; urgency=low
+
+  * Added watchfile.
+
+ -- Isaac Jones <ijones@debian.org>  Sat, 20 Nov 2004 14:13:25 -0800
+
+haskell-mode (1.45-1) unstable; urgency=low
+
+  * New upstream release
+  * Bugs relating to indentation and comments seem to be fixed.
+    closes: #46115, closes: #51821
+  * Not much information from upstream about changes.  I'm not sure if
+    this is exaustive:
+    "Support for proper behaviour (including with Unicode identifiers)
+    in Emacs 21 only hacked in messily to avoid disturbing the old
+    stuff.  Needs integrating more cleanly.  Allow literate comment
+    face to be customized.  Some support for fontifying definitions."
+
+ -- Isaac Jones <ijones@debian.org>  Sat, 20 Nov 2004 13:09:01 -0800
+
+haskell-mode (1.44-4) unstable; urgency=low
+
+  * Changed the type of getLine from IO Char to IO String, closes: 282000
+
+ -- Isaac Jones <ijones@debian.org>  Thu, 18 Nov 2004 17:40:15 -0800
+
+haskell-mode (1.44-3) unstable; urgency=low
+
+  * Added a load-path line to 50haskell-mode.el, closes: #229976
+  * Removed empty "haskell-mode" directory in $(emacs_d_dir)
+
+ -- Isaac Jones <ijones@debian.org>  Wed, 29 Jan 2004 00:15:25 -0500
+
+haskell-mode (1.44-2) unstable; urgency=low
+
+  * Installed files in a subdirectory of site-lisp, closes: #119263
+  * Updated standards-version
+  * Added a few compilers to the "suggests" field
+  * Updated description to include ghci
+  * Removed backup (filename~) files from package
+  * Updated maintainer's email address
+
+ -- Isaac Jones <ijones@debian.org>  Sat, 24 Jan 2004 19:02:53 -0500
+
+haskell-mode (1.44-1) unstable; urgency=low
+
+  * New upstream release, closes: #111476, #154894
+  * New maintainer, closes: #174854
+  * Switched to one-dot version number, which is what upstream uses.
+  * Fixed small error in copyright file Author(s) -> Authors.
+  * Removed FHS transition stuff from postinst script.
+  * Updated standards version to 3.5.8.
+  * Updated the Depends to emacs21.
+
+ -- Isaac Jones <ijones@syntaxpolice.org>  Wed,  1 Jan 2003 17:11:02 -0500
+
 haskell-mode (1.4.2-1) unstable; urgency=medium
 
   * New upstream release

@@ -1,11 +1,11 @@
 ;;; haskell-decl-scan.el --- Declaration scanning module for Haskell Mode
 
+;; Copyright (C) 2004  Free Software Foundation, Inc.
 ;; Copyright (C) 1997-1998 Graeme E Moss
 
 ;; Authors: 1997-1998 Graeme E Moss <gem@cs.york.ac.uk>
 ;; Keywords: declarations menu files Haskell
-;; Version: 1.2
-;; URL: http://www.cs.york.ac.uk/~gem/haskell-mode/decl-scan.html
+;; URL: http://cvs.haskell.org/cgi-bin/cvsweb.cgi/fptools/CONTRIB/haskell-modes/emacs/haskell-decl-scan.el?rev=HEAD
 
 ;;; This file is not part of GNU Emacs.
 
@@ -52,11 +52,11 @@
 ;;
 ;; If you have any problems or suggestions, after consulting the list
 ;; below, email gem@cs.york.ac.uk quoting the version of the library
-;; you are using, the version of emacs you are using, and a small
+;; you are using, the version of Emacs you are using, and a small
 ;; example of the problem or suggestion.  Note that this library
 ;; requires a reasonably recent version of Emacs.
 ;;
-;; Uses `imenu' under FSF Emacs, and `func-menu' under XEmacs.
+;; Uses `imenu' under Emacs, and `func-menu' under XEmacs.
 ;;
 ;; Version 1.2:
 ;;   Added support for LaTeX-style literate scripts.
@@ -88,7 +88,7 @@
 ;; . Would be nice to scan other top-level declarations such as
 ;;   methods of a class, datatype field labels...  any more?
 ;;
-;; . Support for Green Card?
+;; . Support for GreenCard?
 ;;
 ;; . Re-running (literate-)haskell-imenu should not cause the problems
 ;;   that it does.  The ability to turn off scanning would also be
@@ -110,7 +110,7 @@
 ;;   with spaces okay.
 ;;
 ;; . Would like to extend the goto functions given by `func-menu'
-;;   under XEmacs to FSF Emacs.  Would have to implement these
+;;   under XEmacs to Emacs.  Would have to implement these
 ;;   ourselves as `imenu' does not provide them.
 ;;
 ;; . `func-menu' uses its own syntax table when grabbing a declaration
@@ -119,15 +119,20 @@
 ;;   eg. "fib'" will be grabbed as "fib" since "'" is not a word or
 ;;   symbol constituent under the syntax table `func-menu' uses.
 
-;;; All functions/variables start with
-;;; `(turn-(on/off)-)haskell-decl-scan' or `haskell-ds-'.
+;; All functions/variables start with
+;; `(turn-(on/off)-)haskell-decl-scan' or `haskell-ds-'.
 
-;;; The imenu support is based on code taken from `hugs-mode',
-;;; thanks go to Chris Van Humbeeck.
+;; The imenu support is based on code taken from `hugs-mode',
+;; thanks go to Chris Van Humbeeck.
 
 ;; Version.
-(defconst haskell-decl-scan-version "1.1"
-  "haskell-decl-scan version number.")
+
+;;; Code:
+
+(require 'haskell-mode)
+
+(defconst haskell-decl-scan-version "1.7"
+  "Version number of haskell-decl-scan.")
 (defun haskell-decl-scan-version ()
   "Echo the current version of haskell-decl-scan in the minibuffer."
   (interactive)
@@ -137,23 +142,20 @@
 ;; As `cl' defines macros that `imenu' uses, we must require them at
 ;; compile time.
 (eval-when-compile
-  ;; `imenu' isn't used in XEmacs.
-  (if (not (string-match "Lucid\\|XEmacs" emacs-version))
-      (progn
-	(require 'cl)
-	(require 'imenu))))
-
-;; Are we running FSF Emacs or XEmacs?
-(defvar haskell-ds-running-xemacs
-  (string-match "Lucid\\|XEmacs" emacs-version)
-  "non-nil if we are running XEmacs, nil otherwise.")
+  (require 'cl)
+  (condition-case nil
+      (require 'imenu)
+    (error nil)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General declaration scanning functions.
 
-(defun haskell-ds-match-string (num)
-  "As `match-string' except that the string is stripped of properties."
-  (format "%s" (match-string num)))
+(defalias 'haskell-ds-match-string
+  (if (fboundp 'match-string-no-properties)
+      'match-string-no-properties
+    (lambda (num)
+      "As `match-string' except that the string is stripped of properties."
+      (format "%s" (match-string num)))))
 
 (defvar haskell-ds-start-keywords-re
   (concat "\\(\\<"
@@ -162,36 +164,14 @@
 	  "\\)\\>")
   "Keywords that may start a declaration.")
 
-(defvar haskell-ds-syntax-table nil
+(defvar haskell-ds-syntax-table
+  (let ((table (copy-syntax-table haskell-mode-syntax-table)))
+    (modify-syntax-entry ?\' "w" table)
+    (modify-syntax-entry ?_  "w" table)
+    (modify-syntax-entry ?\\ "_" table)
+    table)
   "Syntax table used for Haskell declaration scanning.")
 
-(if (not haskell-ds-syntax-table)
-    (progn
-      (setq haskell-ds-syntax-table (make-syntax-table))
-  (modify-syntax-entry ?\  " " haskell-ds-syntax-table)
-  (modify-syntax-entry ?\t " " haskell-ds-syntax-table)
-  (modify-syntax-entry ?\" "\"" haskell-ds-syntax-table)
-  (modify-syntax-entry ?\' "w" haskell-ds-syntax-table)
-  (modify-syntax-entry ?_  "w" haskell-ds-syntax-table)
-  (modify-syntax-entry ?\( "()" haskell-ds-syntax-table)
-  (modify-syntax-entry ?\) ")(" haskell-ds-syntax-table)
-  (modify-syntax-entry ?[  "(]" haskell-ds-syntax-table)
-  (modify-syntax-entry ?]  ")[" haskell-ds-syntax-table)
-  (modify-syntax-entry ?{  "(}1" haskell-ds-syntax-table)
-  (modify-syntax-entry ?}  "){4" haskell-ds-syntax-table)
-  (modify-syntax-entry ?-  "_ 23" haskell-ds-syntax-table)
-  (modify-syntax-entry ?\` "$`" haskell-ds-syntax-table)
-  (mapcar (lambda (x)
-            (modify-syntax-entry x "_" haskell-ds-syntax-table))
-          (concat "!#$%&*+./:<=>?@\\^|~"
-                  (haskell-enum-from-to ?\241 ?\277)
-                  "\327\367"))
-  (mapcar (lambda (x)
-            (modify-syntax-entry x "w" haskell-ds-syntax-table))
-          (concat (haskell-enum-from-to ?\300 ?\326)
-                  (haskell-enum-from-to ?\330 ?\337)
-                  (haskell-enum-from-to ?\340 ?\366)
-                  (haskell-enum-from-to ?\370 ?\377)))))
 
 (defun haskell-ds-get-variable (prefix)
   "Assuming point is looking at the regexp PREFIX followed by the
@@ -244,7 +224,7 @@ otherwise returns nil.  Point is not moved in either case."
 
 (defun haskell-ds-move-to-start-regexp (inc regexp)
   "Move to beginning of line that succeeds/preceeds (INC = 1/-1)
-current line that starts with REGEXP and is not in font-lock-comment-face."
+current line that starts with REGEXP and is not in `font-lock-comment-face'."
   ;; Making this defsubst instead of defun appears to have little or
   ;; no effect on efficiency.  It is probably not called enough to do
   ;; so.
@@ -255,10 +235,10 @@ current line that starts with REGEXP and is not in font-lock-comment-face."
 
 (defvar literate-haskell-ds-line-prefix "> "
   "The regexp that matches the start of a line of Bird-style literate
-code for the purposes of imenu support.  Current value is \"> \" as we
+code for the purposes of `imenu' support.  Current value is \"> \" as we
 assume top-level declarations start at column 3.  Must not contain the
 special \"^\" regexp as we may not use the regexp at the start of a
-regexp string.  Note this is only for imenu support.")
+regexp string.  Note this is only for `imenu' support.")
 
 (defvar haskell-ds-start-decl-re "\\(\\sw\\|(\\)"
   "The regexp that starts a Haskell declaration.")
@@ -392,6 +372,10 @@ then point does not move if already at the start of a declaration."
     ;; Return the result.
     result))
 
+(defun haskell-ds-bird-p ()
+  (if (boundp 'haskell-literate)
+      (eq haskell-literate 'bird) nil))
+
 (defun haskell-ds-backward-decl ()
   "Move point backward to the first character preceeding the current
 point that starts a top-level declaration.  A series of declarations
@@ -403,18 +387,12 @@ declaration.  Returns point if point is left at the start of a
 declaration, and nil otherwise, ie. because point is at the beginning
 of the buffer and no declaration starts there."
   (interactive)
-  (haskell-ds-move-to-decl nil
-                           (if (boundp 'haskell-literate)
-                               (eq haskell-literate 'bird) nil)
-                           nil))
+  (haskell-ds-move-to-decl nil (haskell-ds-bird-p) nil))
 
 (defun haskell-ds-forward-decl ()
   "As `haskell-ds-backward-decl' but forward."
   (interactive)
-  (haskell-ds-move-to-decl t
-                           (if (boundp 'haskell-literate)
-                               (eq haskell-literate 'bird) nil)
-                           nil))
+  (haskell-ds-move-to-decl t (haskell-ds-bird-p) nil))
 
 (defun haskell-ds-generic-find-next-decl (bird-literate)
   "Find the name, position and type of the declaration at or after
@@ -422,8 +400,8 @@ point.  Returns `((name . (start-position . name-position)) . type)'
 if one exists and nil otherwise.  The start-position is at the start
 of the declaration, and the name-position is at the start of the name
 of the declaration.  The name is a string, the positions are buffer
-positions and the type is one of the symbols `variable', `datatype',
-`class', `import' and `instance'."
+positions and the type is one of the symbols \"variable\", \"datatype\",
+\"class\", \"import\" and \"instance\"."
   (let (;; The name, type and name-position of the declaration to
 	;; return.
 	name
@@ -524,21 +502,13 @@ positions and the type is one of the symbols `variable', `datatype',
 ;; Declaration scanning via `imenu'.
 
 (defun haskell-ds-create-imenu-index ()
-  "Non-literate Haskell version of `haskell-ds-generic-create-menu-index'."
-  (haskell-ds-generic-create-imenu-index nil))
-
-(defun literate-haskell-ds-create-imenu-index ()
-  "Bird-style literate Haskell version of
-`haskell-ds-generic-create-menu-index'."
-  (haskell-ds-generic-create-imenu-index t))
-
-(defun haskell-ds-generic-create-imenu-index (bird-literate)
-  "Function for finding imenu declarations in (BIRD-LITERATE) Haskell mode.
+  "Function for finding `imenu' declarations in Haskell mode.
 Finds all declarations (classes, variables, imports, instances and
-datatypes) in a Haskell file for the imenu package."
+datatypes) in a Haskell file for the `imenu' package."
   ;; Each list has elements of the form `(INDEX-NAME . INDEX-POSITION)'.
   ;; These lists are nested using `(INDEX-TITLE . INDEX-ALIST)'.
-  (let* ((index-alist '())
+  (let* ((bird-literate (haskell-ds-bird-p))
+	 (index-alist '())
 	 (index-class-alist '())   ;; Classes
 	 (index-var-alist '())     ;; Variables
 	 (index-imp-alist '())     ;; Imports
@@ -603,20 +573,9 @@ datatypes) in a Haskell file for the imenu package."
 `haskell-ds-create-imenu-index'."
   (string< (car el1) (car el2)))
 
-(defun haskell-ds-imenu (bird-literate)
-  "Install imenu for (BIRD-LITERATE) Haskell scripts."
-  ;; Would prefer to toggle imenu but can't see how to turn it off...
-  (require 'imenu)
-  ;; In emacs-20's imenu we have to bind some functions first -- HWL
-  (if (and  (not haskell-ds-running-xemacs)
-	    (>= (string-to-number (substring emacs-version 0 2)) 20)
-	    (not (fboundp 'imenu-extract-index-name-function)))
-    (setq imenu-extract-index-name-function
-	  (if bird-literate (function literate-haskell-ds-create-imenu-index)
-	    (function haskell-ds-create-imenu-index))))
-  (setq imenu-create-index-function
-	(if bird-literate (function literate-haskell-ds-create-imenu-index)
-	  (function haskell-ds-create-imenu-index)))
+(defun haskell-ds-imenu ()
+  "Install `imenu' for Haskell scripts."
+  (setq imenu-create-index-function 'haskell-ds-create-imenu-index)
   (if (fboundp 'imenu-add-to-menubar)
       (imenu-add-to-menubar "Declarations")))
 
@@ -625,14 +584,10 @@ datatypes) in a Haskell file for the imenu package."
 
 (defun haskell-ds-func-menu-next (buffer)
   "Non-literate Haskell version of `haskell-ds-generic-func-menu-next'." 
-  (haskell-ds-generic-func-menu-next nil buffer)) 
-
-(defun literate-haskell-ds-func-menu-next (buffer)
-  "Bird-style literate Haskell version of `haskell-ds-generic-func-menu-next'."
-  (haskell-ds-generic-func-menu-next t buffer)) 
+  (haskell-ds-generic-func-menu-next (haskell-ds-bird-p) buffer)) 
 
 (defun haskell-ds-generic-func-menu-next (bird-literate buffer)
-  "Returns `(name . pos)' of next declaration."
+  "Return `(name . pos)' of next declaration."
   (set-buffer buffer)
   (let ((result (haskell-ds-generic-find-next-decl bird-literate)))
     (if result
@@ -664,22 +619,19 @@ datatypes) in a Haskell file for the imenu package."
   (concat "^" literate-haskell-ds-start-decl-re)
   "As `haskell-ds-func-menu-regexp' but for Bird-style literate scripts.")
 
-(defun haskell-ds-func-menu (bird-literate)
-  "Uses `func-menu' to establish declaration scanning for (BIRD-LITERATE)
-Haskell scripts."
+(defun haskell-ds-func-menu ()
+  "Use `func-menu' to establish declaration scanning for Haskell scripts."
   (require 'func-menu)
   (make-local-variable 'fume-menubar-menu-name)
   (setq fume-menubar-menu-name "Declarations")
   (make-local-variable 'fume-function-name-regexp-alist)
   (setq fume-function-name-regexp-alist
-	(if bird-literate
+	(if (haskell-ds-bird-p)
             '((haskell-mode . literate-haskell-ds-func-menu-regexp))
           '((haskell-mode . haskell-ds-func-menu-regexp))))
   (make-local-variable 'fume-find-function-name-method-alist)
   (setq fume-find-function-name-method-alist
-        (if bird-literate
-            '((haskell-mode . literate-haskell-ds-func-menu-next))
-          '((haskell-mode . haskell-ds-func-menu-next))))
+	'((haskell-mode . haskell-ds-func-menu-next)))
   (fume-add-menubar-entry)
   (local-set-key "\C-cl" 'fume-list-functions)
   (local-set-key "\C-cg" 'fume-prompt-function-goto)
@@ -706,7 +658,7 @@ Under XEmacs, the following keys are also defined:
 \\[fume-prompt-function-goto] prompts for a declaration to move to, and
 \\[fume-mouse-function-goto] moves to the declaration whose name is at point.
 
-This may link with `haskell-doc' (only for FSF Emacs currently).
+This may link with `haskell-doc' (only for Emacs currently).
 
 For non-literate and LaTeX-style literate scripts, we assume the
 common convention that top-level declarations start at the first
@@ -737,15 +689,12 @@ Invokes `haskell-decl-scan-hook' if not nil.
 Use `haskell-decl-scan-version' to find out what version this is."
   (interactive)
   (haskell-ds-keys)
-  (let ((bird-literate (if (boundp 'haskell-literate)
-                           (eq haskell-literate 'bird) nil)))
-    (if haskell-ds-running-xemacs
-        (haskell-ds-func-menu bird-literate)
-      (haskell-ds-imenu bird-literate)))
+  (if (fboundp 'imenu)
+      (haskell-ds-imenu)
+    (haskell-ds-func-menu))
   (run-hooks 'haskell-decl-scan-hook))
 
-;;; Provide ourselves:
+;; Provide ourselves:
 
 (provide 'haskell-decl-scan)
-
-;;; haskell-decl-scan ends here.
+;;; haskell-decl-scan.el ends here

@@ -1,13 +1,13 @@
 Source: haskell-mode
 Section: devel
 Priority: optional
-Maintainer: Antti-Juhani Kaijanaho <ajk@debian.org>
-Standards-Version: 3.5.6
+Maintainer:  Isaac Jones <ijones@debian.org>
+Standards-Version: 3.6.1.0
 
 Package: haskell-mode
 Architecture: all
-Depends: emacs20 | xemacs21 | emacsen, debconf
-Suggests: hugs, ghc5
+Depends: emacs21 | xemacs21 | emacsen, debconf
+Suggests: hugs, ghc5, ghc6, nhc98
 Description: A major mode for editing Haskell in Emacs
  A major mode for editing Haskell (the functional
  programming language) in Emacs.
@@ -20,4 +20,4 @@ Description: A major mode for editing Haskell in Emacs
    when the cursor is idle. 
   -Indentation: Provides semi-automatic intelligent indentation. 
   -Simple Indentation: Provides simple indentation. 
-  -Hugs Interaction: Allows interaction with the Hugs interpreter.
+  -Hugs and ghci Interaction: Allows interaction with Haskell interpreters.

@@ -1,10 +1,12 @@
-This package was debianized by Tommi Virtanen tv@debian.org and is
-currently maintained by Antti-Juhani Kaijanaho <ajk@debian.org>.
+This package was debianized by Tommi Virtanen tv@debian.org.  It was
+then maintained by Antti-Juhani Kaijanaho <ajk@debian.org>, and is
+currently maintained by Isaac Jones <ijones@debian.org>.
 
 It was downloaded from 
-  http://www.haskell.org/haskell-mode/haskell-mode-1.41.tar.gz
+  http://www-perso.iro.umontreal.ca/~monnier/elisp/
 
-Upstream Author(s):
+Upstream Authors:
+ -Current Maintainer    Stefan Monnier <monnier@gnu.org>
  -The Base:		Graeme E Moss <gem@cs.york.ac.uk>
  			and Tommy Thorn
  -Font Locking:	 	Graeme E Moss and Tommy Thorn

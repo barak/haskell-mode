@@ -1,8 +1,39 @@
-haskell-mode (2.0-1) unstable; urgency=low
+haskell-mode (2.1-1) unstable; urgency=low
 
   * New upstream release
 
- -- Isaac Jones <ijones@syntaxpolice.org>  Wed, 22 Dec 2004 02:14:02 -0500
+ -- Isaac Jones <ijones@syntaxpolice.org>  Wed, 16 Nov 2005 22:28:12 -0800
+
+haskell-mode (2.0-1) unstable; urgency=low
+
+  * New upstream release. closes: 281998.
+
+  * Updated copyright file to show new Debian and upstream maintainers.
+    closes: 286769
+
+  * keybindings C-c <char> have been replaced by C-c C-<char> so as not to
+    collide with minor modes.
+  
+  * The following modules are now automatically activated without having
+    to add anything to haskell-mode-hook: haskell-font-lock (just turn on
+    global-font-lock-mode).  haskell-decl-scan (just bind `imenu' to some
+    key).
+  
+  * In recent Emacsen, haskell-doc hooks into eldoc-mode.
+  
+  * haskell-hugs and haskell-ghci are superceded by inf-haskell.
+  
+  * Indentation rules have been improved when using layout inside parens/braces.
+  
+  * Symbols like -> and \ can be displayed as actual arrows and lambdas.
+    See haskell-font-lock-symbols.
+  
+  * Tweaks to the font-lock settings.  Among other things paren-matching
+    with things like \(x,y) should work correctly now.
+  
+  * New upstream maintainer <monnier@gnu.org>.
+
+ -- Isaac Jones <ijones@debian.org>  Wed, 22 Dec 2004 02:14:02 -0500
 
 haskell-mode (1.45-2) unstable; urgency=low
 

@@ -1,6 +1,6 @@
 ;;; inf-haskell.el --- Interaction with an inferior Haskell process.
 
-;; Copyright (C) 2004  Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2005  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords: Haskell
@@ -23,7 +23,7 @@
 ;;; Commentary:
 
 ;; The code is made of 2 parts: a major mode for the buffer that holds the
-;; infeiror process's session and a minor mode for use in source buffers.
+;; inferior process's session and a minor mode for use in source buffers.
 
 ;;; Code:
 
@@ -33,10 +33,18 @@
 
 ;; Here I depart from the inferior-haskell- prefix.
 ;; Not sure if it's a good idea.
-(defcustom haskell-program-name "hugs \"+.\""
+(defcustom haskell-program-name
+  ;; Arbitrarily give preference to hugs over ghci.
+  (or (cond
+       ((not (fboundp 'executable-find)) nil)
+       ((executable-find "hugs") "hugs \"+.\"")
+       ((executable-find "ghci") "ghci"))
+      "hugs \"+.\"")
   "The name of the command to start the inferior Haskell process.
 The command can include arguments."
-  :options '("hugs \"+.\"" "ghci")
+  ;; Custom only supports the :options keyword for a few types, e.g. not
+  ;; for string.
+  ;; :options '("hugs \"+.\"" "ghci")
   :group 'haskell
   :type '(choice string (repeat string)))
 
@@ -63,9 +71,21 @@ The format should be the same as for `compilation-error-regexp-alist'.")
   ;; Setup `compile' support so you can just use C-x ` and friends.
   (set (make-local-variable 'compilation-error-regexp-alist)
        inferior-haskell-error-regexp-alist)
-  (cond
-   ((fboundp 'compilation-shell-minor-mode) (compilation-shell-minor-mode 1))
-   ((fboundp 'compilation-minor-mode) (compilation-minor-mode 1))))
+  (if (and (not (boundp 'minor-mode-overriding-map-alist))
+           (fboundp 'compilation-shell-minor-mode))
+      ;; If we can't remove compilation-minor-mode bindings, at least try to
+      ;; use compilation-shell-minor-mode, so there are fewer
+      ;; annoying bindings.
+      (compilation-shell-minor-mode 1)
+    ;; Else just use compilation-minor-mode but without its bindings because
+    ;; things like mouse-2 are simply too annoying.
+    (compilation-minor-mode 1)
+    (let ((map (make-sparse-keymap)))
+      (dolist (keys '([menu-bar] [follow-link]))
+        ;; Preserve some of the bindings.
+        (define-key map keys (lookup-key compilation-minor-mode-map keys)))
+      (add-to-list 'minor-mode-overriding-map-alist
+                   (cons 'compilation-minor-mode map)))))
 
 (defun inferior-haskell-string-to-strings (string &optional separator)
   "Split the STRING into a list of strings.
@@ -132,8 +152,12 @@ setting up the inferior-haskell buffer."
       ;;   (inferior-haskell-send-string
       ;;    proc (concat ":cd " (file-name-directory file) "\n")))
       (compilation-forget-errors)
+      (if (boundp 'compilation-parsing-end)
+	  (if (markerp compilation-parsing-end)
+	      (set-marker compilation-parsing-end (point-max))
+	    (setq compilation-parsing-end (point-max))))
       (inferior-haskell-send-command
-       proc (if reload ":reload" (concat ":load " file))))))
+       proc (if reload ":reload" (concat ":load \"" file "\""))))))
 
 (defun inferior-haskell-send-command (proc str)
   (setq str (concat str "\n"))
@@ -153,4 +177,6 @@ setting up the inferior-haskell buffer."
   (inferior-haskell-load-file 'reload))
 
 (provide 'inf-haskell)
+
+;; arch-tag: 61804287-63dd-4052-bc0e-90f691b34b40
 ;;; inf-haskell.el ends here

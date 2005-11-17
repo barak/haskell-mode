@@ -19,7 +19,7 @@
 (autoload 'turn-on-haskell-ghci "haskell-ghci"
   "Turn on interaction with a GHC interpreter." t)
 
-(add-hook 'haskell-mode-hook 'turn-on-haskell-font-lock)
+(add-hook 'haskell-mode-hook 'turn-on-font-lock)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
 (if (not (string-match "Lucid\\|XEmacs" emacs-version))
     (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode))

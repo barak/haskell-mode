@@ -6,7 +6,7 @@ Standards-Version: 3.6.1.0
 
 Package: haskell-mode
 Architecture: all
-Depends: emacs21 | xemacs21 | emacsen
+Depends: emacs21 | xemacs21 | emacsen, debconf
 Suggests: hugs, ghc5, ghc6, nhc98
 Description: A major mode for editing Haskell in Emacs
  A major mode for editing Haskell (the functional

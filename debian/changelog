@@ -1,3 +1,12 @@
+haskell-mode (2.1-1) unstable; urgency=low
+
+  * New upstream release
+  * Removed old debconf stuff (Closes: 331845, Closes: 237437)
+  * removed hook for turn-on-haskell-font-lock (Closes: 306548)
+  * fixed type for map (Closes: 316992)
+
+ -- Isaac Jones <ijones@debian.org>  Wed, 16 Nov 2005 22:28:12 -0800
+
 haskell-mode (2.0-1) unstable; urgency=low
 
   * New upstream release. closes: 281998.

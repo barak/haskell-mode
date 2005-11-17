@@ -1,3 +1,187 @@
+2005-11-07  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* Release version 2.1.
+
+	* haskell-indent.el (haskell-indent-inside-comment): Rename `start' arg
+	into `open' and add a new `start' arg.
+	(haskell-indent-after-keywords): Change defaults for `in'.
+	(haskell-indent-indentation-info): Fix confusion between pos and col.
+	(haskell-indent-mode): Autoload.
+
+	* haskell-indent.el (haskell-indent-find-matching-start):
+	Add `pred' and `start' arguments.
+	(haskell-indent-filter-let-no-in): New fun.
+	(haskell-indent-indentation-info): Use them to correctly match `let's
+	with `in's even when some of the `let's have no matching `in'.
+
+2005-11-06  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-indent.el: Reduce the use of dyn-bound haskell-indent-info.
+	(haskell-indent-push-col): Don't duplicate info.
+	(haskell-indent-line-indentation): Handle let-in-do.  Remove dead code.
+	(haskell-indent-inside-comment): Move rest of code from
+	haskell-indent-indentation-info.
+
+	* haskell-indent.el (haskell-literate): Declare.
+	(haskell-running-xemacs, event-basic-type, read-event): Remove.
+	(haskell-indent-get-beg-of-line, haskell-indent-get-end-of-line):
+	Remove.  Use line-(beginning|end)-position instead.
+	(haskell-indent-mark-active): Move the xemacs test inside the defun.
+	(haskell-indent-info): Rename from indent-info.  Update users.
+	(haskell-indent-bolp, haskell-indent-inside-comment):
+	Use line-beginning-position.
+	(haskell-indent-within-literate-code): Use `case'.
+	(haskell-indent-put-region-in-literate): Bind more comment-* vars.
+	(haskell-indent-virtual-indentation): Add the missing `start' arg.
+	(haskell-indent-mode): Move before first use.
+	(haskell-indent-stand-alone-mode): Use haskell-indent-mode.
+	Rename from haskell-stand-alone-indent-mode.  Use define-derived-mode.
+	(hugs-mode-map, hugs-syntax-table):
+	Rename to haskell-stand-alone-indent-mode-(map|syntax-table).
+
+	* haskell-doc.el (haskell-doc-xemacs-p, haskell-doc-emacs-p)
+	(haskell-doc-message): Remove.
+	(haskell-doc-is-id-char-at): Remove.
+	(haskell-doc-get-current-word): Rewrite.
+
+2005-11-04  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-indent.el (haskell-indent-indentation-info): Fix detection of
+	hanging let/if/case statements.
+
+	* haskell-mode.el (haskell-mode): Fix typo.
+
+2005-11-04  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* inf-haskell.el (inferior-haskell-mode): Hide compilation bindings.
+
+	* haskell-indent.el (haskell-indent-after-keywords): New var.
+	(haskell-indent-virtual-indentation): New fun.
+	(haskell-indent-indentation-info): Use them to indent after keywords.
+
+	* haskell-simple-indent.el (haskell-simple-indent): Minor simplif.
+	(turn-on-haskell-simple-indent): Don't bind \t and \n.
+
+	* haskell-mode.el (haskell-vars, haskell-mode-generic): Remove.
+	(haskell-mode-hook): Rename from haskell-mode-hooks.
+	(haskell-mode): Use define-derived-mode.  Inline haskell-mode-generic
+	and haskell-vars.
+	(literate-haskell-mode): Use define-derived-mode.
+
+	* fontlock.hs: Add some entries for infix declarations.
+
+2005-10-12  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-indent.el (haskell-indent-start-keywords-re): Use regexp-opt.
+	(haskell-indent-type-at-point): Accept ' in identifiers.
+	(haskell-indent-find-case): Tell match-data to not generate markers.
+	(haskell-indent-line-indentation): Ignore off-side keywords in comments
+	and strings.
+	(haskell-indent-find-matching-start): Generalize.
+	Rename from haskell-indent-find-let.
+	(haskell-indent-indentation-info): Use it for of, then, and else.
+
+2005-09-28  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-indent.el (haskell-indent-in-comment): Don't fail at EOB.
+
+	* haskell-font-lock.el (haskell-font-lock-symbols-alist): Add "not".
+	(haskell-font-lock-compose-symbol): Handle alphanum identifiers.
+	Fix incorrect handling of . when used for qualified names.
+
+2005-09-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-font-lock.el (haskell-font-lock-symbols-alist): Prefer the
+	unicode version of lambda.  Add two symbols from the Omega language and
+	from Paterson's arrow syntax.
+
+2005-08-24  Steve Chamberlain  <sac@pobox.com>  (tiny patch)
+
+	* haskell-doc.el (haskell-doc-message): Paren typo.
+
+2005-08-23  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-doc.el (haskell-doc-show-type): Assume that the availability
+	of display-message won't change at runtime.
+
+	* haskell-font-lock.el (haskell-font-lock-keywords-create): Try and
+	work around a bug that seems to be in Emacs-21.3 rather than in
+	haskell-font-lock.el.  Reported by Steve Chamberlain <sac@pobox.com>.
+
+2005-07-18  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* inf-haskell.el (haskell-program-name): Fix defcustom delcaration.
+
+	* haskell-doc.el (haskell-doc-message): Remove.
+	(haskell-doc-show-type): Inline it.  Don't do anything for if there's
+	no doc to show.
+
+2005-02-02  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-hugs.el (haskell-hugs-mode-map):
+	* haskell-ghci.el (haskell-ghci-mode-map): Remove.
+
+2005-01-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-indent.el (haskell-indent-inside-comment): Don't assume that
+	column(pos+2) = column(pos)+2.
+	(haskell-indent-indentation-info): Fix indentation of , and ;.
+	Add arg `start'.  Restrict choice of indentation for comments.
+	(haskell-indent-event-type): Remove.
+	(haskell-indent-last-info): New var.
+	(haskell-indent-cycle): Use it to store info from one invocation to
+	the next, so we can do cycling outside of the function.
+	Don't cycle directly any more.  Instead, recognize repeated invocations
+	via last-command and friends.
+	Use indent-line-function rather than hardcoding indent-to-left-margin.
+	(haskell-indent-insert-where): Don't save excursion.
+	(haskell-indent-layout-indent-info): Minor simplifications.
+	(haskell-indent-line-indentation): Don't ignore code on a line
+	before a string.
+
+	* haskell-hugs.el (haskell-hugs-last-loaded-file): Remove.
+	(haskell-hugs-start-process): Fix misuse of make-variable-buffer-local.
+	(haskell-hugs-go): Quote file name.  Simplify.
+
+	* haskell-ghci.el (haskell-ghci-last-loaded-file): Remove.
+	(haskell-ghci-start-process): Fix misuse of make-variable-buffer-local.
+	(haskell-ghci-go): Quote file name.  Simplify.
+
+	* haskell-mode.el (haskell-version): Keep it up-to-date.
+
+	* inf-haskell.el (inferior-haskell-load-file): Quote file name.
+
+2004-12-10  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* haskell-indent.el (haskell-indent-start-of-def): Only go backward.
+	(haskell-indent-in-string): Simplify.
+	(haskell-indent-in-comment): Simplify.
+	(haskell-indent-comment): Remove.
+	(haskell-indent-inside-comment): New fun.
+	(haskell-indent-indentation-info): Assume we're at the indentation.
+	Handle comments differently.
+	(haskell-indent-cycle): Go to indentation and then save excursion
+	around haskell-indent-indentation-info.
+
+	* haskell-doc.el (haskell-doc-minor-mode-string): Make it dynamic.
+	(haskell-doc-install-keymap): Remove conflicting C-c C-o binding.
+	(haskell-doc-mode): Make a nil arg turn the mode ON.
+	(turn-on-haskell-doc-mode): Make it an alias for haskell-doc-mode.
+	(haskell-doc-mode): Don't touch haskell-doc-minor-mode-string.
+	(haskell-doc-show-global-types): Don't touch
+	haskell-doc-minor-mode-string.  Call haskell-doc-make-global-fct-index.
+	(haskell-doc-check-active): Fix message.
+	(define-key-after): Don't define.
+	(haskell-doc-install-keymap): Check existence of define-key-after.
+
+	* haskell-mode.el (haskell-literate-default): Fix custom type.
+	(haskell-vars): Ignore comments when doing C-M-f.
+
+	* indent.hs: More test cases.
+
+	* inf-haskell.el (haskell-program-name): Use ghci if hugs is absent.
+	(inferior-haskell-load-file): Reset compilation-parsing-end.
+
 2004-11-25  Stefan Monnier  <monnier@iro.umontreal.ca>
 
 	* Release version 2.0.
@@ -170,3 +354,5 @@
 ;; Local Variables:
 ;; coding: utf-8
 ;; End:
+
+# arch-tag: a2606dc4-fab7-4b2f-bbe9-0a51db643511

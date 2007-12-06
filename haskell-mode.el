@@ -1,6 +1,6 @@
 ;;; haskell-mode.el --- A Haskell editing mode    -*-coding: iso-8859-1;-*-
 
-;; Copyright (C) 2003, 2004, 2005  Free Software Foundation, Inc
+;; Copyright (C) 2003, 2004, 2005, 2006, 2007  Free Software Foundation, Inc
 ;; Copyright (C) 1992, 1997-1998 Simon Marlow, Graeme E Moss, and Tommy Thorn
 
 ;; Authors: 1992      Simon Marlow
@@ -9,10 +9,10 @@
 ;;          2001-2002 Reuben Thomas (>=v1.4)
 ;;          2003      Dave Love <fx@gnu.org>
 ;; Keywords: faces files Haskell
-;; Version: v2_1
+;; Version: v2_3
 ;; URL: http://www.haskell.org/haskell-mode/
 
-;;; This file is not part of GNU Emacs.
+;; This file is not part of GNU Emacs.
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -199,7 +199,7 @@
 ;; All functions/variables start with `(literate-)haskell-'.
 
 ;; Version of mode.
-(defconst haskell-version "v2_1"
+(defconst haskell-version "v2_3"
   "`haskell-mode' version number.")
 (defun haskell-version ()
   "Echo the current version of `haskell-mode' in the minibuffer."
@@ -228,16 +228,13 @@
 
 ;; Obsolete functions.
 (defun turn-on-haskell-font-lock ()
-  (interactive)
   (turn-on-font-lock)
   (message "turn-on-haskell-font-lock is obsolete.  Use turn-on-font-lock instead."))
 (defun turn-on-haskell-hugs ()
-  (interactive)
   (message "haskell-hugs is obsolete.")
   (load "haskell-hugs")
   (turn-on-haskell-hugs))
 (defun turn-on-haskell-ghci ()
-  (interactive)
   (message "haskell-ghci is obsolete.")
   (load "haskell-ghci")
   (turn-on-haskell-ghci))
@@ -275,11 +272,35 @@ be set to the preferred literate style."
     (define-key map [?\C-c ?\C-r] 'inferior-haskell-reload-file)
     (define-key map [?\C-c ?\C-b] 'switch-to-haskell)
     ;; (define-key map [?\C-c ?\C-s] 'inferior-haskell-start-process)
-
     ;; That's what M-; is for.
     ;; (define-key map "\C-c\C-c" 'comment-region)
+
+    (define-key map (kbd "C-c C-t") 'inferior-haskell-type)
+    (define-key map (kbd "C-c C-i") 'inferior-haskell-info)
+    (define-key map (kbd "C-c M-.") 'inferior-haskell-find-definition)
     map)
   "Keymap used in Haskell mode.")
+
+(easy-menu-define haskell-mode-menu haskell-mode-map
+  "Menu for the Haskell major mode."
+  ;; Suggestions from Pupeno <pupeno@pupeno.com>:
+  ;; - choose the underlying interpreter
+  ;; - look up docs
+  `("Haskell"
+    ["Indent line" indent-according-to-mode]
+    ["Indent region" indent-region mark-active]
+    ["(Un)Comment region" comment-region mark-active]
+    "---"
+    ["Start interpreter" switch-to-haskell]
+    ["Load file" inferior-haskell-load-file]
+    "---"
+    ,(if (default-boundp 'eldoc-documentation-function)
+         ["Doc mode" eldoc-mode
+          :style toggle :selected (bound-and-true-p eldoc-mode)]
+       ["Doc mode" haskell-doc-mode
+        :style toggle :selected (and (boundp 'haskell-doc-mode) haskell-doc-mode)])
+    ["Customize" (customize-group 'haskell)]
+    ))
 
 ;; Syntax table.
 (defvar haskell-mode-syntax-table
@@ -301,7 +322,6 @@ be set to the preferred literate style."
 	   (modify-syntax-entry ?}  "){8" table)
 	   (modify-syntax-entry ?-  "_ 1267" table))
 	  (t
-	   ;; The following get comment syntax right, similarly to C++
 	   ;; In Emacs 21, the `n' indicates that they nest.
 	   ;; The `b' annotation is actually ignored because it's only
 	   ;; meaningful on the second char of a comment-starter, so
@@ -348,6 +368,17 @@ be set to the preferred literate style."
 		      "øùúûüýþÿ")))
     table)
   "Syntax table used in Haskell mode.")
+
+(defun haskell-ident-at-point ()
+  "Return the identifier under point, or nil if none found."
+  (save-excursion
+    (if (looking-at "\\s_")
+        (buffer-substring-no-properties
+         (progn (skip-syntax-backward "_") (point))
+         (progn (skip-syntax-forward "_") (point)))
+      (buffer-substring-no-properties
+       (progn (skip-syntax-backward "w'") (skip-syntax-forward "'") (point))
+       (progn (skip-syntax-forward "w'") (point))))))
 
 ;; Various mode variables.
 
@@ -406,7 +437,7 @@ Invokes `haskell-mode-hook' if not nil."
   (set (make-local-variable 'comment-end-skip) "[ \t]*\\(-}\\|\\s>\\)")
   (set (make-local-variable 'parse-sexp-ignore-comments) t)
   ;; Set things up for eldoc-mode.
-  (set (make-local-variable 'eldoc-print-current-symbol-info-function)
+  (set (make-local-variable 'eldoc-documentation-function)
        'haskell-doc-current-info)
   ;; Set things up for imenu.
   (set (make-local-variable 'imenu-create-index-function)

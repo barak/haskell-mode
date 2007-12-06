@@ -41,11 +41,12 @@ cvsroot=$(shell cat CVS/Root)
 dist:
 	cvs tag -F $(TAG) &&\
 	cd $(TMP) &&\
-	unset CVSREAD; cvs -d $(cvsroot) export -r $(TAG) -d $(PACKAGE)-$(VERSION) $(cvsmodule) &&\
+	unset CVSREAD; cvs -d $(cvsroot) export -kv -r $(TAG) -d $(PACKAGE)-$(VERSION) $(cvsmodule) &&\
 	cd $(PACKAGE)-$(VERSION) &&\
 	make info $(AUTOLOADS) &&\
+	rm -f gmon.out;\
 	cd .. &&\
-	ztar $(PACKAGE)-$(VERSION) &&\
+	tar zcf $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION) &&\
 	rm -rf $(PACKAGE)-$(VERSION)
 	mv $(TMP)/$(PACKAGE)-$(VERSION).tar.gz $(ftpdir)/
 	ln -sf $(PACKAGE)-$(VERSION).tar.gz $(ftpdir)/$(PACKAGE).tar.gz

@@ -1,23 +1,22 @@
 Source: haskell-mode
 Section: devel
 Priority: optional
-Maintainer:  Isaac Jones <ijones@debian.org>
-Standards-Version: 3.6.1.0
+Maintainer:  Petr Rockai <mornfall@debian.org>
+Uploaders: Isaac Jones <ijones@debian.org>
+Build-Depends: debhelper (>= 5), cdbs
+Standards-Version: 3.7.2
 
 Package: haskell-mode
 Architecture: all
-Depends: emacs21 | xemacs21 | emacsen
-Suggests: hugs, ghc5, ghc6, nhc98
+Depends: emacs22 | xemacs22 | emacsen
+Recommends: ghc6 | hugs
 Description: A major mode for editing Haskell in Emacs
  A major mode for editing Haskell (the functional
  programming language) in Emacs.
  .
  Major features:
-  -Font Locking: Colours keywords, comments, strings, etc. 
-  -Declaration Scanning: Scans declarations and places them in a
-   menu. 
-  -Documentation: Echoes types of functions or syntax of keywords
-   when the cursor is idle. 
-  -Indentation: Provides semi-automatic intelligent indentation. 
-  -Simple Indentation: Provides simple indentation. 
-  -Hugs and ghci Interaction: Allows interaction with Haskell interpreters.
+  - syntax highlighting (font lock),
+  - automatic indentation,
+  - on-the-fly documentation,
+  - interaction with inferior ghci or hugs instance,
+  - scans declarations and places them in a menu.

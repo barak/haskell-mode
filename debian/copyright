@@ -1,6 +1,6 @@
 This package was debianized by Tommi Virtanen tv@debian.org.  It was
-then maintained by Antti-Juhani Kaijanaho <ajk@debian.org>, and is
-currently maintained by Isaac Jones <ijones@debian.org>.
+then maintained by Antti-Juhani Kaijanaho <ajk@debian.org> and now by
+Isaac Jones <ijones@debian.org> and Petr Rockai <mornfall@debian.org>.
 
 It was downloaded from 
   http://www-perso.iro.umontreal.ca/~monnier/elisp/

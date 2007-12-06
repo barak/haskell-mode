@@ -1,3 +1,0 @@
-# Site                 Directory        Pattern			Version	Script
-version=2
-http://www.haskell.org/haskell-mode/     haskell-mode-(.*)\.tar\.gz debian echo

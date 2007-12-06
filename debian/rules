@@ -1,24 +1,4 @@
 #!/usr/bin/make -f
-# Rewritten (almost) from scratch by Antti-Juhani Kaijanaho.
-# You may treat this file as if it were in the public domain.
 
-librules_interface = 1
-include debian/librules.mk
-
-debian/stamp/build:
-	touch $@
-
-debian/stamp/binary/indep: debian/stamp/binary/haskell-mode
-
-debian/stamp/binary/haskell-mode: package=haskell-mode
-debian/stamp/binary/haskell-mode: debian/stamp/build
-	$(prebinary)
-	$(install_dir) $(elispdir)/haskell-mode
-	$(install_dir) $(emacs_d_dir)
-	$(install_nonex) debian/conffiles $(ctldir)
-	$(install_script) debian/postrm.haskell-mode $(ctldir)/postrm
-	$(install_nonex) *.el $(elispdir)/haskell-mode
-	$(install_nonex) debian/50haskell-mode.el $(emacs_d_dir)
-	$(install_nonex) debian/README.debian $(docdir)/README.Debian
-	$(postbinary)
-	touch $@
+include /usr/share/cdbs/1/rules/buildcore.mk
+include /usr/share/cdbs/1/rules/debhelper.mk

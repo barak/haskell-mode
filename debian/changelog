@@ -1,3 +1,12 @@
+haskell-mode (2.3-1) unstable; urgency=low
+
+  * New upstream release (closes: #443400, #448658, #411955),
+  * re-debianized, using cdbs and debhelper,
+  * enabling the byte-compile of emacs-lisp sources (closes:  #408260),
+  * new maintainer, keeping Isaac as co-maintainer.
+
+ -- Petr Rockai <mornfall@debian.org>  Thu, 06 Dec 2007 01:02:06 +0100
+
 haskell-mode (2.1-1) unstable; urgency=low
 
   * New upstream release

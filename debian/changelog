@@ -1,3 +1,9 @@
+haskell-mode (2.4-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Petr Rockai <mornfall@debian.org>  Fri, 15 Feb 2008 13:09:49 +0100
+
 haskell-mode (2.3-1) unstable; urgency=low
 
   * New upstream release (closes: #443400, #448658, #411955),

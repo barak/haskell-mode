@@ -1,3 +1,14 @@
+haskell-mode (2.7.0-1) unstable; urgency=low
+
+  * New upstream release (closes: #561830).
+  * Recognize runghc/runhaskell scripts (closes: #427766).
+  * Update debian/watch (closes: #450321).
+  * Use the upstream autoload script (closes: #492517).
+  * The problematic haskell-ghci-mode-map has been obliterated by
+    upstream (closes: #369910).
+
+ -- Petr Rockai <mornfall@debian.org>  Thu, 04 Feb 2010 17:32:03 +0100
+
 haskell-mode (2.4-1) unstable; urgency=low
 
   * New upstream release.

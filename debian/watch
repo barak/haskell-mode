@@ -1,3 +1,2 @@
 version=2
-opts="uversionmangle=s/\.0$//" \
-  http://projects.haskell.org/haskellmode-emacs/ haskell-mode-(.*)\.tar\.gz debian
+http://projects.haskell.org/haskellmode-emacs/ haskell-mode-(.*)\.tar\.gz debian

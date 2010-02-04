@@ -1,14 +1,14 @@
 Source: haskell-mode
-Section: devel
+Section: haskell
 Priority: optional
 Maintainer:  Petr Rockai <mornfall@debian.org>
 Uploaders: Isaac Jones <ijones@debian.org>
 Build-Depends: debhelper (>= 5), cdbs
-Standards-Version: 3.7.2
+Standards-Version: 3.8.3
 
 Package: haskell-mode
 Architecture: all
-Depends: emacs22 | xemacs22 | emacsen
+Depends: emacs22 | xemacs22 | emacsen, ${misc:Depends}
 Recommends: ghc6 | hugs
 Description: A major mode for editing Haskell in Emacs
  A major mode for editing Haskell (the functional

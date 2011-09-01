@@ -1,0 +1,23 @@
+Source: haskell-mode
+Section: devel
+Priority: optional
+Maintainer: Tommi Virtanen <tv@debian.org>
+Standards-Version: 2.4.0.0
+
+Package: haskell-mode
+Architecture: all
+Depends: emacsen
+Suggests: hugs
+Description: A major mode for editing Haskell in Emacs
+ A major mode for editing Haskell (the functional
+ programming language) in Emacs.
+ .
+ Major features:
+  -Font Locking: Colours keywords, comments, strings, etc. 
+  -Declaration Scanning: Scans declarations and places them in a
+   menu. 
+  -Documentation: Echoes types of functions or syntax of keywords
+   when the cursor is idle. 
+  -Indentation: Provides semi-automatic intelligent indentation. 
+  -Simple Indentation: Provides simple indentation. 
+  -Hugs Interaction: Allows interaction with the Hugs interpreter.

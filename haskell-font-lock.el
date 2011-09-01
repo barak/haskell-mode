@@ -169,10 +169,16 @@ suitable for `font-lock-keywords'."
           (concat ASCsymbol ISOsymbol))
 
          ;; We allow _ as the first char to fit GHC
-         (varid
+         (id
           (concat "\\b\\([" small large "0-9'_]+\\)\\b"))
+         (varid
+          (concat "\\b\\([" small "_][" small large "0-9'_]*\\)\\b"))
          (conid
           (concat "\\b\\([" large "][" small large "0-9'_]*\\)\\b"))
+         (qvarid
+          (concat conid "\\." varid))
+         (qconid
+          (concat conid "\\." conid))
 	 (sym
 	  (concat "[" symbol ":]+"))
 
@@ -188,7 +194,7 @@ suitable for `font-lock-keywords'."
 	 ;; make-regexp applied to reservedid creates the following
 	 ;; regexp
 	 (reservedid
-	  "\\b\\(as\\|c\\(ase\\|lass\\)\\|d\\(ata\\|e\\(fault\\|riving\\)\\|o\\)\\|else\\|hiding\\|i\\([fn]\\|mport\\|n\\(fix\\(\\|[lr]\\)\\|stance\\)\\)\\|let\\|module\\|newtype\\|of\\|qualified\\|t\\(hen\\|ype\\)\\|where\\)\\b")
+	  "\\b\\(c\\(ase\\|lass\\)\\|d\\(ata\\|e\\(fault\\|riving\\)\\|o\\)\\|else\\|hiding\\|i\\([fn]\\|mport\\|n\\(fix\\(\\|[lr]\\)\\|stance\\)\\)\\|let\\|module\\|newtype\\|of\\|qualified\\|t\\(hen\\|ype\\)\\|where\\)\\b")
 
          ;; This unreadable regexp matches strings and character
          ;; constants.  We need to do this with one regexp to handle
@@ -216,6 +222,7 @@ suitable for `font-lock-keywords'."
 ;; NOTICE the ordering below is significant
 ;;
 	    ("--.*$" 0 'haskell-comment-face t)
+	    ("^#.*$" 0 'font-lock-warning-face t)
 	    ;; Expensive.
 	    ,`(,string-and-char 1 'haskell-string-char-face)
 	    ;; These four are debatable...
@@ -225,6 +232,8 @@ suitable for `font-lock-keywords'."
 	    ("(->)" 0 'haskell-constructor-face)
 	    ;; Expensive.
 	    ,`(,reservedid 1 'haskell-keyword-face)
+	    ,`(,qvarid 1 'haskell-default-face)
+	    ,`(,qconid 1 'haskell-constructor-face)
 	    ,@(if (eq level 2)
 		  `(,`(,(concat "\`" varid "\`") 0 'haskell-operator-face))
 		'())
@@ -234,7 +243,7 @@ suitable for `font-lock-keywords'."
 	    ,`(,sym 0 ,`(let ((match (match-string 0)))
 			  ,`(cond
 			     ,`(,`(member match ',reservedsym)
-				'haskell-keyword-face)
+				'haskell-operator-face)
 			     ((eq (aref match 0) ?:) 'haskell-constructor-face)
 			     ,@(if (eq level 2)
 				   '((t 'haskell-operator-face))
@@ -323,11 +332,11 @@ that should be commented under LaTeX-style literate scripts."
     (?-  . "_ 23")
     (?\` . "$`")
     ,@(mapcar (lambda (x) (cons x "_"))
-	      (concat "!#$%&*+./:<=>?@\\^|~" (enum-from-to ?\241 ?\277)
+	      (concat "!#$%&*+./:<=>?@\\^|~" (haskell-enum-from-to ?\241 ?\277)
 		      "\327\367"))
     ,@(mapcar (lambda (x) (cons x "w"))
-	      (concat (enum-from-to ?\300 ?\326) (enum-from-to ?\330 ?\337)
-		      (enum-from-to ?\340 ?\366) (enum-from-to ?\370 ?\377))))
+	      (concat (haskell-enum-from-to ?\300 ?\326) (haskell-enum-from-to ?\330 ?\337)
+		      (haskell-enum-from-to ?\340 ?\366) (haskell-enum-from-to ?\370 ?\377))))
   "Syntax required for font locking.  Given as a list of pairs for use
 in font-lock-defaults.")
 

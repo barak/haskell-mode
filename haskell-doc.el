@@ -9,11 +9,11 @@
 ;; Temporary Maintainer and Hacker: Graeme E Moss <gem@cs.york.ac.uk>
 ;; Keywords: extensions, minor mode, language mode, Haskell
 ;; Created: 1997-06-17
-;; Revision: $Revision: 1.6 $
+;; Revision: $Revision: 1.1 $
 ;; FTP archive: /ftp@ftp.dcs.gla.ac.uk:/pub/glasgow-fp/authors/Hans_Loidl/Elisp/haskell-doc.el
 ;; Status: Beta version
 
-;; $Id: haskell-doc.el,v 1.6 1998/12/10 16:27:25 hwloidl Exp hwloidl $
+;; $Id: haskell-doc.el,v 1.1 2001/07/19 16:17:36 rrt Exp $
 
 ;;; Copyright:
 ;;  ==========
@@ -143,6 +143,12 @@
 ;;; Changelog:
 ;;  ==========
 ;;  $Log: haskell-doc.el,v $
+;;  Revision 1.1  2001/07/19 16:17:36  rrt
+;;  Add the current version of the Moss/Thorn/Marlow Emacs mode, along with its
+;;  web pages and sample files. This is now the preferred mode, and the
+;;  haskell.org pages are being changed to reflect that. Also includes the new
+;;  GHCi mode from Chris Webb.
+;;
 ;;  Revision 1.6  1998/12/10 16:27:25  hwloidl
 ;;  Minor changes ("Doc" as modeline string, mouse-3 moved to C-S-M-mouse-3)
 ;;
@@ -212,7 +218,7 @@
 ;@node Maintenance stuff, Mode Variable, Emacs portability, Constants and Variables
 ;@subsection Maintenance stuff
 
-(defconst haskell-doc-version "$Revision: 1.6 $"
+(defconst haskell-doc-version "$Revision: 1.1 $"
  "Version of `haskell-doc' as RCS Revision.")
 
 (defconst haskell-doc-maintainer "Hans-Wolfgang Loidl <hwloidl@dcs.glasgow.ac.uk>"

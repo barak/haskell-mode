@@ -5,6 +5,7 @@
 ;; In standard Emacs terminology, this would be called
 ;;    inferior-hugs-mode
 ;;    
+;; Copyright 2004  Free Software Foundation, Inc.
 ;; Copyright 1999 Guy Lapalme
 
 ;; Author:1998, 1999 Guy Lapalme <lapalme@iro.umontreal.ca>
@@ -72,13 +73,22 @@
 ;;; All functions/variables start with
 ;;; `(turn-(on/off)-)haskell-hugs' or `haskell-hugs-'.
 
+(defgroup haskell-hugs nil
+  "Major mode for interacting with an inferior Hugs session."
+  :group 'haskell
+  :prefix "haskell-hugs-")
+
 (defun turn-on-haskell-hugs ()
   "Turn on Haskell interaction mode with a Hugs interpreter running in an
 another Emacs buffer named *hugs*.
 Maps the followind commands in the haskell keymap.
-     \\[haskell-hugs-load-file] to save the current buffer and load it by sending the :load command to Hugs.
-     \\[haskell-hugs-reload-file] to send the :reload command to Hugs without saving the buffer.
-     \\[haskell-hugs-show-hugs-buffer] to show the Hugs buffer and go to it."
+     \\[haskell-hugs-load-file]
+       to save the current buffer and load it by sending the :load command
+       to Hugs.
+     \\[haskell-hugs-reload-file]
+       to send the :reload command to Hugs without saving the buffer.
+     \\[haskell-hugs-show-hugs-buffer]
+       to show the Hugs buffer and go to it."
   (interactive)
   (local-set-key "\C-c\C-s" 'haskell-hugs-start-process)
   (local-set-key "\C-c\C-l" 'haskell-hugs-load-file)
@@ -97,33 +107,31 @@ Maps the followind commands in the haskell keymap.
 
 (defvar haskell-hugs-mode-map nil)
 
-(defun haskell-hugs-mode ()
+(define-derived-mode haskell-hugs-mode comint-mode "Haskell Hugs"
 ;; called by haskell-hugs-start-process,
 ;; itself called by haskell-hugs-load-file
 ;; only when the file is loaded the first time
   "Major mode for interacting with an inferior Hugs session.
 
 The commands available from within a Haskell script are:
-     \\<haskell-mode-map>\\[haskell-hugs-load-file] to save the current buffer and load it by sending the :load command to Hugs.
-     \\[haskell-hugs-reload-file] to send the :reload command to Hugs without saving the buffer.
-     \\[haskell-hugs-show-hugs-buffer] to show the Hugs buffer and go to it.
+     \\<haskell-mode-map>\\[haskell-hugs-load-file]
+       to save the current buffer and load it by sending the :load command
+       to Hugs.
+     \\[haskell-hugs-reload-file]
+       to send the :reload command to Hugs without saving the buffer.
+     \\[haskell-hugs-show-hugs-buffer]
+       to show the Hugs buffer and go to it.
 
 \\<haskell-hugs-mode-map>
 Commands:
 Return at end of buffer sends line as input.
 Return not at end copies rest of line to end and sends it.
-\\[comint-kill-input] and \\[backward-kill-word] are kill commands, imitating normal Unix input editing.
-\\[comint-interrupt-subjob] interrupts the comint or its current subjob if any.
-\\[comint-stop-subjob] stops, likewise. \\[comint-quit-subjob] sends quit signal."
-  (interactive)
-  (comint-mode)
-  (setq major-mode 'haskell-hugs-mode)
-  (setq mode-name "Haskell Hugs")
-  (if haskell-hugs-mode-map
-      nil
-    (setq haskell-hugs-mode-map (copy-keymap comint-mode-map))
-    )
-  (use-local-map haskell-hugs-mode-map)
+\\[comint-kill-input] and \\[backward-kill-word] are kill commands,
+imitating normal Unix input editing.
+\\[comint-interrupt-subjob] interrupts the comint or its current
+subjob if any.
+\\[comint-stop-subjob] stops, likewise.
+ \\[comint-quit-subjob] sends quit signal."
   )
 
 ;; Hugs-interface
@@ -140,17 +148,23 @@ Return not at end copies rest of line to end and sends it.
 (defvar haskell-hugs-last-loaded-file nil
   "The last file loaded into the Hugs process.")
 
-(defvar haskell-hugs-program-name "hugs"
-  "*The name of the command to start the Hugs interpreter.")
+(defcustom haskell-hugs-program-name "hugs"
+  "*The name of the command to start the Hugs interpreter."
+  :type 'string
+  :group 'haskell-hugs)
 
-(defvar haskell-hugs-program-args '("+.")
-  "*A list of string args to send to the hugs process")
+(defcustom haskell-hugs-program-args '("+.")
+  "*A list of string args to send to the hugs process."
+  :type '(repeat string)
+  :group 'haskell-hugs)
 
 (defvar haskell-hugs-load-end nil
-  "Position of the end of the last load command")
+  "Position of the end of the last load command.")
 
 (defvar haskell-hugs-send-end nil
-  "Position of the end of the last send command")
+  "Position of the end of the last send command.")
+
+(defalias 'run-hugs 'haskell-hugs-start-process)
 
 (defun haskell-hugs-start-process (arg)
   "Start a Hugs process and invokes `haskell-hugs-hook' if not nil.
@@ -176,7 +190,7 @@ Prompts for a list of args if called with an argument."
   (setq shell-dirtrackp         t)
   (setq comint-input-sentinel   'shell-directory-tracker)
                                 ; ? or  module name in Hugs 1.4
-  (setq comint-prompt-regexp  "^\? \\|^[A-Z][_a-zA-Z0-9]*> ")
+  (setq comint-prompt-regexp  "^\? \\|^[A-Z][_a-zA-Z0-9\.]*> ")
     ;; comint's history syntax conflicts with Hugs syntax, eg. !!
   (setq comint-input-autoexpand nil)
   (run-hooks 'haskell-hugs-hook)
@@ -185,13 +199,14 @@ Prompts for a list of args if called with an argument."
 
 (defun haskell-hugs-wait-for-output ()
   "Wait until output arrives and go to the last input."
-  (while (progn			
+  (while (progn
 	   (goto-char comint-last-input-end)
-	   (not (re-search-forward comint-prompt-regexp nil t)))
-    (accept-process-output haskell-hugs-process)))
+	   (and
+	    (not (re-search-forward comint-prompt-regexp nil t))
+	    (accept-process-output haskell-hugs-process)))))
 
 (defun haskell-hugs-send (&rest string)
-  "Send haskell-hugs-process the arguments (one or more strings).
+  "Send `haskell-hugs-process' the arguments (one or more strings).
 A newline is sent after the strings and they are inserted into the
 current buffer after the last output."
   ;; Wait until output arrives and go to the last input.

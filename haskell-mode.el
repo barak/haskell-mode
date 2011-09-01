@@ -1,13 +1,15 @@
-;;; haskell-mode.el --- A Haskell editing mode
+;;; haskell-mode.el --- A Haskell editing mode    -*-coding: iso-8859-1;-*-
 
+;; Copyright (C) 2003, 2004  Free Software Foundation, Inc
 ;; Copyright (C) 1992, 1997-1998 Simon Marlow, Graeme E Moss, and Tommy Thorn
 
 ;; Authors: 1992      Simon Marlow
 ;;          1997-1998 Graeme E Moss <gem@cs.york.ac.uk> and
 ;;                    Tommy Thorn <thorn@irisa.fr>,
 ;;          2001-2002 Reuben Thomas (>=v1.4)
+;;          2003      Dave Love <fx@gnu.org>
 ;; Keywords: faces files Haskell
-;; Version: 1.42
+;; Version: 1.43
 ;; URL: http://www.haskell.org/haskell-mode/
 
 ;;; This file is not part of GNU Emacs.
@@ -50,14 +52,15 @@
 ;; `haskell-simple-indent', Graeme E Moss and Heribert Schuetz
 ;;   Simple indentation.
 ;;
-;; `haskell-hugs', Guy Lapalme
-;;   Interaction with Hugs interpreter.
+;; `inf-haskell'
+;;   Interaction with an inferior Haskell process.
+;;   It replaces the previous two modules:
+;;     `haskell-hugs', Guy Lapalme
+;;     `haskell-ghci', Chris Web
 ;;
-;; `haskell-ghci', Chris Web
-;;   Interaction with GHCi interpreter.
 ;;
-;;
-;; This mode supports full Latin1 Haskell 1.4 including literate scripts.
+;; This mode supports full Haskell 1.4 including literate scripts.
+;; In some versions of (X)Emacs it may only support Latin-1, not Unicode.
 ;;
 ;; Installation:
 ;; 
@@ -83,12 +86,10 @@
 ;; To turn any of the supported modules on for all buffers, add the
 ;; appropriate line(s) to .emacs:
 ;;
-;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-font-lock)
 ;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
 ;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
 ;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
 ;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
-;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-hugs)
 ;;
 ;; Make sure the module files are also on the load-path.  Note that
 ;; the two indentation modules are mutually exclusive: Use only one.
@@ -114,11 +115,15 @@
 ;; author to contact via email.  For general problems or suggestions,
 ;; consult the list below, then email gem@cs.york.ac.uk and
 ;; thorn@irisa.fr quoting the version of the mode you are using, the
-;; version of emacs you are using, and a small example of the problem
+;; version of Emacs you are using, and a small example of the problem
 ;; or suggestion.
 ;;
+;; Version 1.43:
+;;   Various tweaks to doc strings and customization support from
+;;   Ville Skyttä <scop@xemacs.org>.
+;;
 ;; Version 1.42:
-;;   Added autoload for GHCi inferior mode (thanks to Scott 
+;;   Added autoload for GHCi inferior mode (thanks to Scott
 ;;   Williams for the bug report and fix).
 ;;
 ;; Version 1.41:
@@ -180,35 +185,33 @@
 
 ;; Present Limitations/Future Work (contributions are most welcome!):
 ;;
-;; . Unicode is still a mystery...  has anyone used it yet?  We still
-;;   support Latin-ISO-8859-1 though (the character set of Haskell 1.3).
-;;
 ;; . Would like RET in Bird-style literate mode to add a ">" at the
 ;;   start of a line when previous line starts with ">".  Or would
 ;;   "> " be better?
 ;;
-;; . Support for Green Card?
+;; . Support for GreenCard?
 ;;
 
-;;; All functions/variables start with `(literate-)haskell-'.
+;;; Code:
+
+(eval-when-compile (require 'cl))
+
+;; All functions/variables start with `(literate-)haskell-'.
 
 ;; Version of mode.
-(defconst haskell-version "1.41"
-  "haskell-mode version number.")
+(defconst haskell-version "1.43"
+  "`haskell-mode' version number.")
 (defun haskell-version ()
-  "Echo the current version of haskell-mode in the minibuffer."
+  "Echo the current version of `haskell-mode' in the minibuffer."
   (interactive)
   (message "Using haskell-mode version %s" haskell-version))
 
-;; Haskell-like function for creating [from..to].
-(defun haskell-enum-from-to (from to)
-  (if (> from to)
-      ()
-    (cons from (haskell-enum-from-to (1+ from) to))))
+(defgroup haskell nil
+  "Major mode for editing Haskell programs."
+  :group 'languages
+  :prefix "haskell-")
 
 ;; Set up autoloads for the modules we supply
-(autoload 'turn-on-haskell-font-lock "haskell-font-lock"
-  "Turn on Haskell font locking." t)
 (autoload 'turn-on-haskell-decl-scan "haskell-decl-scan"
   "Turn on Haskell declaration scanning." t)
 (autoload 'turn-on-haskell-doc-mode "haskell-doc"
@@ -217,20 +220,33 @@
   "Turn on Haskell indentation." t)
 (autoload 'turn-on-haskell-simple-indent "haskell-simple-indent"
   "Turn on simple Haskell indentation." t)
-(autoload 'turn-on-haskell-hugs "haskell-hugs"
-  "Turn on interaction with a Hugs interpreter." t)
-(autoload 'turn-on-haskell-ghci "haskell-ghci"
-  "Turn on interaction with a GHCi interpreter." t)
 
-;; Are we running FSF Emacs or XEmacs?
-(defvar haskell-running-xemacs
-  (string-match "Lucid\\|XEmacs" emacs-version)
-  "non-nil if we are running XEmacs, nil otherwise.")
+;; Functionality provided in other files.
+(autoload 'haskell-ds-create-imenu-index "haskell-decl-scan")
+(autoload 'haskell-font-lock-choose-keywords "haskell-font-lock")
+(autoload 'haskell-doc-current-info "haskell-doc")
+
+;; Obsolete functions.
+(defun turn-on-haskell-font-lock ()
+  (interactive)
+  (turn-on-font-lock)
+  (message "turn-on-haskell-font-lock is obsolete.  Use turn-on-font-lock instead."))
+(defun turn-on-haskell-hugs ()
+  (interactive)
+  (message "haskell-hugs is obsolete.")
+  (load "haskell-hugs")
+  (turn-on-haskell-hugs))
+(defun turn-on-haskell-ghci ()
+  (interactive)
+  (message "haskell-ghci is obsolete.")
+  (load "haskell-ghci")
+  (turn-on-haskell-ghci))
+
 
 ;; Are we looking at a literate script?
 (defvar haskell-literate nil
   "*If not nil, the current buffer contains a literate Haskell script.
-Possible values are: 'bird and 'latex, for Bird-style and LaTeX-style
+Possible values are: `bird' and `latex', for Bird-style and LaTeX-style
 literate scripts respectively.  Set by `haskell-mode' and
 `literate-haskell-mode'.  For an ambiguous literate buffer -- ie. does
 not contain either \"\\begin{code}\" or \"\\end{code}\" on a line on
@@ -240,58 +256,102 @@ of `haskell-literate-default' is used.
 Always buffer-local.")
 (make-variable-buffer-local 'haskell-literate)
 ;; Default literate style for ambiguous literate buffers.
-(defvar haskell-literate-default 'bird
-  "*If the style of a literate buffer is ambiguous, then this variable
-gives the default value for `haskell-literate'.  This variable should
+(defcustom haskell-literate-default 'bird
+  "*Default value for `haskell-literate'.
+Used if the style of a literate buffer is ambiguous.  This variable should
 be set to the preferred literate style.  For example, place within
 .emacs:
 
-   (setq haskell-literate-default 'latex)")
+   (setq haskell-literate-default 'latex)"
+  :type '(choice bird latex nil)
+  :group 'haskell)
 
 ;; Mode maps.
-(defvar haskell-mode-map ()
-  "Keymap used in Haskell mode.")
-(make-variable-buffer-local 'haskell-mode-map)
+(defvar haskell-mode-map
+  (let ((map (make-sparse-keymap)))
+    ;; Bindings for the inferior haskell process:
+    ;; (define-key map [?\M-C-x]     'inferior-haskell-send-defun)
+    ;; (define-key map [?\C-x ?\C-e] 'inferior-haskell-send-last-sexp)
+    ;; (define-key map [?\C-c ?\C-r] 'inferior-haskell-send-region)
+    (define-key map [?\C-c ?\C-z] 'switch-to-haskell)
+    (define-key map [?\C-c ?\C-l] 'inferior-haskell-load-file)
+    ;; Non standard in other inferior-modes, but traditional in haskell.
+    (define-key map [?\C-c ?\C-r] 'inferior-haskell-reload-file)
+    (define-key map [?\C-c ?\C-b] 'switch-to-haskell)
+    ;; (define-key map [?\C-c ?\C-s] 'inferior-haskell-start-process)
 
-(if (not (default-value 'haskell-mode-map))
-    (set-default 'haskell-mode-map
-                 (progn
-                   (let ((keymap (make-sparse-keymap)))
-                     (define-key keymap "\C-c\C-c" 'comment-region)
-                     keymap))))
+    ;; That's what M-; is for.
+    ;; (define-key map "\C-c\C-c" 'comment-region)
+    map)
+  "Keymap used in Haskell mode.")
 
 ;; Syntax table.
-(defvar haskell-mode-syntax-table nil
-  "Syntax table used in Haskell mode.")
+(defvar haskell-mode-syntax-table
+  (let ((table (make-syntax-table)))
+    (modify-syntax-entry ?\  " " table)
+    (modify-syntax-entry ?\t " " table)
+    (modify-syntax-entry ?\" "\"" table)
+    (modify-syntax-entry ?\' "\'" table)
+    (modify-syntax-entry ?_  "w" table)
+    (modify-syntax-entry ?\( "()" table)
+    (modify-syntax-entry ?\) ")(" table)
+    (modify-syntax-entry ?\[  "(]" table)
+    (modify-syntax-entry ?\]  ")[" table)
 
-(if (not haskell-mode-syntax-table)
-    (progn
-      (setq haskell-mode-syntax-table (make-syntax-table))
-  (modify-syntax-entry ?\  " " haskell-mode-syntax-table)
-  (modify-syntax-entry ?\t " " haskell-mode-syntax-table)
-  (modify-syntax-entry ?\" "\"" haskell-mode-syntax-table)
-  (modify-syntax-entry ?\' "\'" haskell-mode-syntax-table)
-  (modify-syntax-entry ?_  "w" haskell-mode-syntax-table)
-  (modify-syntax-entry ?\( "()" haskell-mode-syntax-table)
-  (modify-syntax-entry ?\) ")(" haskell-mode-syntax-table)
-  (modify-syntax-entry ?[  "(]" haskell-mode-syntax-table)
-  (modify-syntax-entry ?]  ")[" haskell-mode-syntax-table)
-  (modify-syntax-entry ?{  "(}1" haskell-mode-syntax-table)
-  (modify-syntax-entry ?}  "){4" haskell-mode-syntax-table)
-  (modify-syntax-entry ?-  "_ 23" haskell-mode-syntax-table)
-  (modify-syntax-entry ?\` "$`" haskell-mode-syntax-table)
-  (modify-syntax-entry ?\\ "\\" haskell-mode-syntax-table)
-  (mapcar (lambda (x)
-            (modify-syntax-entry x "_" haskell-mode-syntax-table))
-          (concat "!#$%&*+./:<=>?@^|~"
-                  (haskell-enum-from-to ?\241 ?\277)
-                  "\327\367"))
-  (mapcar (lambda (x)
-            (modify-syntax-entry x "w" haskell-mode-syntax-table))
-          (concat (haskell-enum-from-to ?\300 ?\326)
-                  (haskell-enum-from-to ?\330 ?\337)
-                  (haskell-enum-from-to ?\340 ?\366)
-                  (haskell-enum-from-to ?\370 ?\377)))))
+    (cond ((featurep 'xemacs)
+	   ;; I don't know whether this is equivalent to the below
+	   ;; (modulo nesting).  -- fx
+	   (modify-syntax-entry ?{  "(}5" table)
+	   (modify-syntax-entry ?}  "){8" table)
+	   (modify-syntax-entry ?-  "_ 1267" table))
+	  (t
+	   ;; The following get comment syntax right, similarly to C++
+	   ;; In Emacs 21, the `n' indicates that they nest.
+	   ;; The `b' annotation is actually ignored because it's only
+	   ;; meaningful on the second char of a comment-starter, so
+	   ;; on Emacs 20 and before we get wrong results.  --Stef
+	   (modify-syntax-entry ?\{  "(}1nb" table)
+	   (modify-syntax-entry ?\}  "){4nb" table)
+	   (modify-syntax-entry ?-  "_ 123" table)))
+    (modify-syntax-entry ?\n ">" table)
+
+    (let (i lim)
+      (map-char-table
+       (lambda (k v)
+	 (when (equal v '(1))
+	   ;; The current Emacs 22 codebase can pass either a char
+	   ;; or a char range.
+	   (if (consp k)
+	       (setq i (car k)
+		     lim (cdr k))
+	     (setq i k 
+		   lim k))
+	   (while (<= i lim)
+	     (when (> i 127)
+	       (modify-syntax-entry i "_" table))
+	     (setq i (1+ i)))))
+       (standard-syntax-table)))
+    
+    (modify-syntax-entry ?\` "$`" table)
+    (modify-syntax-entry ?\\ "\\" table)
+    (mapcar (lambda (x)
+	      (modify-syntax-entry x "_" table))
+	    ;; Some of these are actually OK by default.
+	    "!#$%&*+./:<=>?@^|~")
+    (unless (featurep 'mule)
+      ;; Non-ASCII syntax should be OK, at least in Emacs.
+      (mapcar (lambda (x)
+		(modify-syntax-entry x "_" table))
+	      (concat "¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿"
+		      "×÷"))
+      (mapcar (lambda (x)
+		(modify-syntax-entry x "w" table))
+	      (concat "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ"
+		      "ØÙÚÛÜÝÞß"
+		      "àáâãäåæçèéêëìíîïðñòóôõö"
+		      "øùúûüýþÿ")))
+    table)
+  "Syntax table used in Haskell mode.")
 
 ;; Various mode variables.
 (defun haskell-vars ()
@@ -304,22 +364,46 @@ be set to the preferred literate style.  For example, place within
   (setq comment-start "-- ")
   (make-local-variable 'comment-padding)
   (setq comment-padding 0)
-  (make-local-variable 'comment-start-skip)
-  (setq comment-start-skip "[-{]- *")
-  (make-local-variable 'comment-column)
-  (setq comment-column 40)
-  (make-local-variable 'comment-indent-function)
-  (setq comment-indent-function 'haskell-comment-indent)
+  (set (make-local-variable 'comment-start-skip) "[-{]-[ \t]*")
   (make-local-variable 'comment-end)
-  (setq comment-end ""))
+  (setq comment-end "")
+  (set (make-local-variable 'comment-end-skip) "[ \t]*\\(-}\\|\\s>\\)")
+  ;; Set things up for eldoc-mode.
+  (set (make-local-variable 'eldoc-print-current-symbol-info-function)
+       'haskell-doc-current-info)
+  ;; Set things up for imenu.
+  (set (make-local-variable 'imenu-create-index-function)
+       'haskell-ds-create-imenu-index)
+  ;; Set things up for font-lock.
+  (set (make-local-variable 'font-lock-defaults)
+       '(haskell-font-lock-choose-keywords
+	 nil nil ((?\' . "w") (?_  . "w")) nil
+	 (font-lock-syntactic-keywords
+	  . haskell-font-lock-choose-syntactic-keywords)
+	 (font-lock-syntactic-face-function
+	  . haskell-syntactic-face-function)
+	 ;; Get help from font-lock-syntactic-keywords.
+	 (parse-sexp-lookup-properties . t)))
+  ;; Haskell's layout rules mean that TABs have to be handled with extra care.
+  ;; The safer option is to avoid TABs.  The second best is to make sure
+  ;; TABs stops are 8 chars apart, as mandated by the Haskell Report.  --Stef
+  (set (make-local-variable 'indent-tabs-mode) nil)
+  (set (make-local-variable 'tab-width) 8))
+
+(defcustom haskell-mode-hooks nil
+  "Hook run after entering Haskell mode."
+  :type 'hook
+  :options '(turn-on-haskell-indent turn-on-font-lock turn-on-eldoc-mode
+	     imenu-add-menubar-index))
 
 ;; The main mode functions
+;;;###autoload
 (defun haskell-mode ()
   "Major mode for editing Haskell programs.  Last adapted for Haskell 1.4.
 Blank lines separate paragraphs, comments start with `-- '.
 
 \\<haskell-mode-map>\\[indent-for-comment] will place a comment at an appropriate place on the current line.
-\\<haskell-mode-map>\\[comment-region] comments (or with prefix arg, uncomments) each line in the region.
+\\[comment-region] comments (or with prefix arg, uncomments) each line in the region.
 
 Literate scripts are supported via `literate-haskell-mode'.  The
 variable `haskell-literate' indicates the style of the script in the
@@ -328,9 +412,6 @@ details.
 
 Modules can hook in via `haskell-mode-hook'.  The following modules
 are supported with an `autoload' command:
-
-   `haskell-font-lock', Graeme E Moss and Tommy Thorn
-     Fontifies standard Haskell keywords, symbols, functions, etc.
 
    `haskell-decl-scan', Graeme E Moss
      Scans top-level declarations, and places them in a menu.
@@ -343,9 +424,6 @@ are supported with an `autoload' command:
 
    `haskell-simple-indent', Graeme E Moss and Heribert Schuetz
      Simple indentation.
-
-   `haskell-hugs', Guy Lapalme
-     Interaction with Hugs interpreter.
 
 Module X is activated using the command `turn-on-X'.  For example,
 `haskell-font-lock' is activated using `turn-on-haskell-font-lock'.
@@ -360,6 +438,7 @@ Invokes `haskell-mode-hook' if not nil."
   (interactive)
   (haskell-mode-generic nil))
 
+;;;###autoload
 (defun literate-haskell-mode ()
   "As `haskell-mode' but for literate scripts."
 
@@ -367,16 +446,15 @@ Invokes `haskell-mode-hook' if not nil."
   (haskell-mode-generic
    (save-excursion
      (goto-char (point-min))
-     (if (re-search-forward "^\\\\begin{code}$\\|^\\\\end{code}$"
-                            (point-max) t)
-         'latex
-       (if (re-search-forward "^>" (point-max) t)
-           'bird
-         haskell-literate-default)))))
+     (cond
+      ((re-search-forward "^\\\\\\(begin\\|end\\){code}$" nil t) 'latex)
+      ((re-search-forward "^>" nil t) 'bird)
+      (t haskell-literate-default)))))
 
 (defun haskell-mode-generic (literate)
-  "Common part of haskell-mode and literate-haskell-mode.  Former
-calls with LITERATE nil.  Latter calls with LITERATE 'bird or 'latex."
+  "Common part of `haskell-mode' and `literate-haskell-mode'.
+Former calls this with LITERATE nil.  Latter calls with LITERATE `bird' or
+`latex'."
 
   (haskell-vars)
   (setq major-mode 'haskell-mode)
@@ -386,14 +464,12 @@ calls with LITERATE nil.  Latter calls with LITERATE 'bird or 'latex."
   (set-syntax-table haskell-mode-syntax-table)
   (run-hooks 'haskell-mode-hook))
 
-;; Find the indentation level for a comment.
-(defun haskell-comment-indent ()
-  (skip-chars-backward " \t")
-  ;; if the line is blank, put the comment at the beginning,
-  ;; else at comment-column
-  (if (bolp) 0 (max (1+ (current-column)) comment-column)))
+;;;###autoload(add-to-list 'auto-mode-alist '("\\.\\(?:[gh]s\\|hi\\)\\'" . haskell-mode))
+;;;###autoload(add-to-list 'auto-mode-alist '("\\.l[gh]s\\'" . literate-haskell-mode))
+;;;###autoload(add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
+;;;###autoload(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
 
-;;; Provide ourselves:
+;; Provide ourselves:
 
 (provide 'haskell-mode)
 

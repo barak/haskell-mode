@@ -1,19 +1,13 @@
 ;;; haskell-doc.el --- show function types in echo area
 
-;; Time-stamp: <Thu Dec 10 1998 17:26:21 Stardate: [-30]2203.42 hwloidl>
-
+;; Copyright (C) 2004  Free Software Foundation, Inc.
 ;; Copyright (C) 1997 Hans-Wolfgang Loidl
 
 ;; Author: Hans-Wolfgang Loidl <hwloidl@dcs.glasgow.ac.uk>
-;; Maintainer: Hans-Wolfgang Loidl <hwloidl@dcs.glasgow.ac.uk>
 ;; Temporary Maintainer and Hacker: Graeme E Moss <gem@cs.york.ac.uk>
 ;; Keywords: extensions, minor mode, language mode, Haskell
 ;; Created: 1997-06-17
-;; Revision: $Revision: 1.1 $
-;; FTP archive: /ftp@ftp.dcs.gla.ac.uk:/pub/glasgow-fp/authors/Hans_Loidl/Elisp/haskell-doc.el
-;; Status: Beta version
-
-;; $Id: haskell-doc.el,v 1.1 2001/07/19 16:17:36 rrt Exp $
+;; URL: http://cvs.haskell.org/cgi-bin/cvsweb.cgi/fptools/CONTRIB/haskell-modes/emacs/haskell-doc.el?rev=HEAD
 
 ;;; Copyright:
 ;;  ==========
@@ -37,20 +31,21 @@
 ;;  ===========
 
 ;; This program shows the type of the Haskell function under the cursor in the
-;; minibuffer. It acts as a kind of "emacs background process", by regularly
+;; minibuffer.  It acts as a kind of "emacs background process", by regularly
 ;; checking the word under the cursor and matching it against a list of
 ;; prelude, library, local and global functions.
 
-;; The preferred usage of this package is in combination with `hugs-mode'.
-;; In that case `haskell-doc' checks an internal variable updated by `imenu'
-;; to access the types of all local functions. In `haskell-mode' this is not 
-;; possible. However, types of prelude functions are still shown.
+;; The preferred usage of this package is in combination with
+;; `haskell-hugs-mode'.
+;; In that case `haskell-doc-mode' checks an internal variable updated by
+;; `imenu' to access the types of all local functions.  In `haskell-mode' this
+;; is not possible.  However, types of prelude functions are still shown.
 
 ;; To show types of global functions, i.e. functions defined in a module 
 ;; imported by the current module, call the function 
-;; `turn-on-haskell-doc-global-types'. This automatically loads all modules
+;; `turn-on-haskell-doc-global-types'.  This automatically loads all modules
 ;; and builds `imenu' tables to get the types of all functions (again this 
-;; currently requires `hugs-mode'). 
+;; currently requires `haskell-hugs-mode'). 
 ;; Note: The modules are loaded recursively, so you might pull in
 ;;       many modules by just turning on global function support.
 ;; This features is currently not very well supported.
@@ -77,7 +72,7 @@
 ;; either t or nil:
 ;;  `haskell-doc-show-global-types' (default: nil)
 ;;  `haskell-doc-show-reserved'     (default: t)
-;;  `haskell-doc-show-prelude'      (default: '1.4)
+;;  `haskell-doc-show-prelude'      (default: t)
 ;;  `haskell-doc-show-strategy'     (default: t)
 ;;  `haskell-doc-show-user-defined' (default: t)
 
@@ -106,7 +101,7 @@
 ;;   M-x turn-on-haskell-doc-mode
 
 ;; These are the names of the functions that can be called directly by the
-;; user (with keybindings in `hugs-mode' and `haskell-mode'):
+;; user (with keybindings in `haskell-hugs-mode' and `haskell-mode'):
 ;;  `haskell-doc-mode' ... toggle haskell-doc-mode; with prefix turn it on
 ;;                        unconditionally if the prefix is greater 0 otherwise
 ;;                        turn it off
@@ -127,7 +122,6 @@
 ;;   - Fix byte-compile problems in `haskell-doc-prelude-types' for getArgs etc 
 ;;   - Write a parser for .hi files and make haskell-doc independent from
 ;;     hugs-mode. Read library interfaces via this parser.
-;;   - Support both Haskell 1.4 and 1.2
 ;;   - Indicate kind of object with colours
 ;;   - Handle multi-line types
 ;;   - Encode i-am-fct info in the alist of ids and types.
@@ -142,7 +136,58 @@
 
 ;;; Changelog:
 ;;  ==========
-;;  $Log: haskell-doc.el,v $
+;;  haskell-doc.el,v
+;;  Revision 1.10  2004/11/25 23:03:23  monnier
+;;  (haskell-doc-sym-doc): Make even the last char bold.
+;;
+;;  Revision 1.9  2004/11/24 22:14:36  monnier
+;;  (haskell-doc-install-keymap): Don't blindly assume there's a Hugs menu.
+;;
+;;  Revision 1.8  2004/11/22 10:45:35  simonmar
+;;  Fix type of getLine
+;;
+;;  Revision 1.7  2004/10/14 22:27:47  monnier
+;;  (turn-off-haskell-doc-mode, haskell-doc-current-info): Don't autoload.
+;;
+;;  Revision 1.6  2004/10/13 22:45:22  monnier
+;;  (haskell-doc): New group.
+;;  (haskell-doc-show-reserved, haskell-doc-show-prelude)
+;;  (haskell-doc-show-strategy, haskell-doc-show-user-defined)
+;;  (haskell-doc-chop-off-context, haskell-doc-chop-off-fctname):
+;;  Make them custom vars.
+;;  (haskell-doc-keymap): Declare and fill it right there.
+;;  (haskell-doc-mode): Simplify.
+;;  (haskell-doc-toggle-var): Make it into what it was supposed to be.
+;;  (haskell-doc-mode-print-current-symbol-info): Simplify.
+;;  (haskell-doc-current-info): New autoloaded function.
+;;  (haskell-doc-sym-doc): New fun extracted from haskell-doc-show-type.
+;;  (haskell-doc-show-type): Use it.
+;;  (haskell-doc-wrapped-type-p): Remove unused var `lim'.
+;;  (haskell-doc-forward-sexp-safe, haskell-doc-current-symbol): Remove.  Unused.
+;;  (haskell-doc-visit-home): Don't require ange-ftp, it's autoloaded.
+;;  (haskell-doc-install-keymap): Simplify.
+;;
+;;  Revision 1.5  2003/01/09 11:56:26  simonmar
+;;  Patches from Ville Skyttä <scop@xemacs.org>, the XEmacs maintainer of
+;;  the haskell-mode:
+;;
+;;   - Make the auto-mode-alist modifications autoload-only.
+;;
+;;  Revision 1.4  2002/10/14 09:55:03  simonmar
+;;  Patch to update the Prelude/libraries function names and to remove
+;;  support for older versions of Haskell.
+;;
+;;  Submitted by: Anders Lau Olsen <alauo@mip.sdu.dk>
+;;
+;;  Revision 1.3  2002/04/30 09:34:37  rrt
+;;  Remove supporting Haskell 1.4 and 1.2 from the ToDo list. It's Far Too Late.
+;;
+;;  Add (require 'imenu). Thanks to N. Y. Kwok.
+;;
+;;  Revision 1.2  2002/04/23 14:45:10  simonmar
+;;  Tweaks to the doc strings and support for customization, from
+;;  Ville Skyttä <scop@xemacs.org>.
+;;
 ;;  Revision 1.1  2001/07/19 16:17:36  rrt
 ;;  Add the current version of the Moss/Thorn/Marlow Emacs mode, along with its
 ;;  web pages and sample files. This is now the preferred mode, and the
@@ -207,6 +252,11 @@
 ;@node Emacs portability, Maintenance stuff, Constants and Variables, Constants and Variables
 ;@subsection Emacs portability
 
+(defgroup haskell-doc nil
+  "Show Haskell function types in echo area."
+  :group 'haskell
+  :prefix "haskell-doc-")
+
 (defconst haskell-doc-xemacs-p (string-match "XEmacs\\|Lucid" emacs-version)
   "Running under XEmacs?")
 
@@ -218,19 +268,20 @@
 ;@node Maintenance stuff, Mode Variable, Emacs portability, Constants and Variables
 ;@subsection Maintenance stuff
 
-(defconst haskell-doc-version "$Revision: 1.1 $"
- "Version of `haskell-doc' as RCS Revision.")
+(defconst haskell-doc-version "1.10"
+ "Version of `haskell-doc-mode' as RCS Revision.")
 
-(defconst haskell-doc-maintainer "Hans-Wolfgang Loidl <hwloidl@dcs.glasgow.ac.uk>"
-  "Maintainer of `haskell-doc'.")
+(defconst haskell-doc-maintainer
+  "Hans-Wolfgang Loidl <hwloidl@dcs.glasgow.ac.uk>"
+  "Maintainer of `haskell-doc-mode'.")
 
-(defconst haskell-doc-ftp-site "/ftp@ftp.dcs.gla.ac.uk:/pub/glasgow-fp/authors/Hans_Loidl/Elisp/"
-  "Main FTP site with latest version of `haskell-doc' and sample files.")
+(defconst haskell-doc-ftp-site
+  "/ftp@ftp.dcs.gla.ac.uk:/pub/glasgow-fp/authors/Hans_Loidl/Elisp/"
+  "Main FTP site with latest version of `haskell-doc-mode' and sample files.")
 
 ;@node Mode Variable, Variables, Maintenance stuff, Constants and Variables
 ;@subsection Mode Variable
 
-;;;###autoload
 (defvar haskell-doc-mode nil
   "*If non-nil, show the type of the function near point or a related comment.
 
@@ -239,14 +290,11 @@ If the identifier near point is a Haskell keyword and the variable
 of the syntax.
 
 If the identifier near point is a Prelude or one of the standard library 
-functions and `haskell-doc-show-prelude' is non-nil show its type. Currently 
-only Haskell 1.4 functions are supported. In future versions the 
-`haskell-doc-show-prelude' variable should determine which prelude/library
-to use for type lookup.
+functions and `haskell-doc-show-prelude' is non-nil show its type.
 
 If the identifier near point is local \(i.e. defined in this module\) check
 the `imenu' list of functions for the type. This obviously requires that
-your language mode uses `imenu' \(`hugs-mode' 0.6 for example\).
+your language mode uses `imenu' \(`haskell-hugs-mode' 0.6 for example\).
 
 If the identifier near point is global \(i.e. defined in an imported module\) 
 and the variable `haskell-doc-show-global-types' is non-nil show the type of its 
@@ -265,7 +313,7 @@ This variable is buffer-local.")
 (make-variable-buffer-local 'haskell-doc-mode)
 
 (defvar haskell-doc-mode-hook nil
- "Hook invoked when entering haskell-doc-mode.")
+ "Hook invoked when entering `haskell-doc-mode'.")
 
 (defvar haskell-doc-index nil
  "Variable holding an alist matching file names to fct-type alists.
@@ -274,37 +322,43 @@ The function `haskell-doc-make-global-fct-index' rebuilds this variables \(simil
 This variable is buffer-local.")
 (make-variable-buffer-local 'haskell-doc-index)
 
-(defvar haskell-doc-show-global-types nil
- "*If non-nil, search for the types of global functions by loading the files.
-This variable is buffer-local.")
+(defcustom haskell-doc-show-global-types nil
+  "If non-nil, search for the types of global functions by loading the files.
+This variable is buffer-local."
+  :type 'boolean)
 (make-variable-buffer-local 'haskell-doc-show-global-types)
 
-(defvar haskell-doc-show-reserved t
- "*If non-nil, show a documentation string for reserved ids.
-This variable is buffer-local.")
+(defcustom haskell-doc-show-reserved t
+  "If non-nil, show a documentation string for reserved ids.
+This variable is buffer-local."
+  :type 'boolean)
 (make-variable-buffer-local 'haskell-doc-show-reserved)
 
-(defvar haskell-doc-show-prelude t ; '1.4
- "*If non-nil, show a documentation string for prelude functions.
-Possible values are Haskell versions. Currently, only `1.4' is supported.
-This variable is buffer-local.")
+(defcustom haskell-doc-show-prelude t
+  "If non-nil, show a documentation string for prelude functions.
+This variable is buffer-local."
+  :type 'boolean)
 (make-variable-buffer-local 'haskell-doc-show-prelude)
 
-(defvar haskell-doc-show-strategy t
- "*If non-nil, show a documentation string for strategies.
-This variable is buffer-local.")
+(defcustom haskell-doc-show-strategy t
+  "If non-nil, show a documentation string for strategies.
+This variable is buffer-local."
+  :type 'boolean)
 (make-variable-buffer-local 'haskell-doc-show-strategy)
 
-(defvar haskell-doc-show-user-defined t
- "*If non-nil, show a documentation string for user defined ids.
-This variable is buffer-local.")
+(defcustom haskell-doc-show-user-defined t
+  "If non-nil, show a documentation string for user defined ids.
+This variable is buffer-local."
+  :type 'boolean)
 (make-variable-buffer-local 'haskell-doc-show-user-defined)
 
-(defvar haskell-doc-chop-off-context t
- "*If non-nil eliminate the context part in a Haskell type.")
+(defcustom haskell-doc-chop-off-context t
+ "If non-nil eliminate the context part in a Haskell type."
+ :type 'boolean)
 
-(defvar haskell-doc-chop-off-fctname nil
- "*If non-nil omit the function name and show only the type.")
+(defcustom haskell-doc-chop-off-fctname nil
+  "If non-nil omit the function name and show only the type."
+  :type 'boolean)
 
 (defvar haskell-doc-search-distance 40  ; distance in characters
  "*How far to search when looking for the type declaration of fct under cursor.")
@@ -330,7 +384,7 @@ returns another string is acceptable.")
 
 This is not done for all commands since some print their own
 messages in the echo area, and these functions would instantly overwrite
-them.  But self-insert-command as well as most motion commands are good
+them.  But `self-insert-command' as well as most motion commands are good
 candidates.
 
 It is probably best to manipulate this data structure with the commands
@@ -418,482 +472,475 @@ It is probably best to manipulate this data structure with the commands
 ;@cindex haskell-doc-prelude-types
 
 (defvar haskell-doc-prelude-types
- (list
- ; Taken from the prelude of the 1.4 report
- ; ToDo: clean this up
- ; ToDo: add overloaded fcts at the beginning of the report.
-; '("subtract"          . "(Num a) => a -> a -> a")
-; '("odd"               . "(Integral a) => a -> Bool")
-; '("even"              . "(Integral a) => a -> Bool")
-; '("gcd"               . "(Integral a) => a -> a -> a")
-; '("lcm"               . "(Integral a) => a -> a -> a")
-; ;'("^"                . "(Num a, Integral b) => a -> b -> a")
-; ;'("^^"               . "(Fractional a, Integral b) => a -> b -> a")
-; '("fromIntegral"      . "(Integral a, Num b) => a -> b")
-; '("fromRealFrac"      . "(RealFrac a, Fractional b) => a -> b")
-; '("atan2"             . "(RealFloat a) => a -> a -> a")
-; '("map"               . "(Functor f) => (a -> b) -> f a -> f b")
-; ;'("(>>=)             . "(Monad m) => m a -> (a -> m b) -> m b")
-; ;'("(>>)              . "(Monad m) => m a -> m b -> m b")
-; '("return"            . "(Monad m) => a -> m a")
-; '("zero"              . "(Monad m) => m a")
-; ;'("(++)              . "(Monad m) => m a -> m a -> m a")
-; '("accumulate"        . "Monad m => [m a] -> m [a] ")
-; '("sequence"          . "Monad m => [m a] -> m () ")
-; '("mapM"              . "Monad m => (a -> m b) -> [a] -> m [b]")
-; '("mapM_"             . "Monad m => (a -> m b) -> [a] -> m ()")
-; '("guard"             . "MonadZero m => Bool -> m ()")
-; '("filter"            . "MonadZero m => (a -> Bool) -> m a -> m a")
-; '("concat"            . "MonadPlus m => [m a] -> m a")
-; '("applyM"            . "Monad m => (a -> m b) -> m a -> m b")
-; '("seq"               . "(Eval a) => a -> b -> b")
-; '("strict"            . "(Eval a) => (a -> b) -> a -> b")
-; '("id"                . "a -> a")
-; '("const"             . "a -> b -> a")
-; ; '("."               . "(b -> c) -> (a -> b) -> a -> c")
-; '("flip"              . "(a -> b -> c) -> b -> a -> c")
-; ;'("$"                . "(a -> b) -> a -> b")
-; ;'("&&"               . "Bool -> Bool -> Bool")
-; ;'("||"               . "Bool -> Bool -> Bool")
-; '("not"               . "Bool -> Bool")
-; '("maybe"             . "b -> (a -> b) -> Maybe a -> b")
-; '("either"            . "(a -> c) -> (b -> c) -> Either a b -> c")
-; '("numericEnumFrom"          . "(Real a) => a -> [a]")
-; '("numericEnumFromThen"      . "(Real a) => a -> a -> [a]")
-; '("numericEnumFromTo"        . "(Real a) => a -> a -> [a]")
-; '("numericEnumFromThenTo"    . "(Real a) => a -> a -> a -> [a]")
-; '("fst"               . "(a,b) -> a")
-; '("snd"               . "(a,b) -> b")
-; '("curry"             . "((a, b) -> c) -> a -> b -> c")
-; '("uncurry"           . "(a -> b -> c) -> ((a, b) -> c)")
-; '("until"             . "(a -> Bool) -> (a -> a) -> a -> a")
-; '("asTypeOf"          . "a -> a -> a")
-; '("error"             . "String -> a")
-; '("undefined"         . "a")
-; ; List fcts
-; '("head"              . "[a] -> a")
-; '("last"              . "[a] -> a")
-; '("tail"              . "[a] -> [a]")
-; '("init"              . "[a] -> [a]")
-; '("null"              . "[a] -> Bool")
-; '("length"            . "[a] -> Int")
-; ; '("!!"              . "[a] -> Int -> a")
-; '("foldl"             . "(a -> b -> a) -> a -> [b] -> a")
-; '("foldl1"            . "(a -> a -> a) -> [a] -> a")
-; '("scanl"             . "(a -> b -> a) -> a -> [b] -> [a]")
-; '("scanl1"            . "(a -> a -> a) -> [a] -> [a]")
-; '("foldr"             . "(a -> b -> b) -> b -> [a] -> b")
-; '("foldr1"            . "(a -> a -> a) -> [a] -> a")
-; '("scanr"             . "(a -> b -> b) -> b -> [a] -> [b]")
-; '("scanr1"            . "(a -> a -> a) -> [a] -> [a]")
-; '("iterate"           . "(a -> a) -> a -> [a]")
-; '("repeat"            . "a -> [a]")
-; '("replicate"         . "Int -> a -> [a]")
-; '("cycle"             . "[a] -> [a]")
-; '("take"              . "Int -> [a] -> [a]")
-; '("drop"              . "Int -> [a] -> [a]")
-; '("splitAt"           . "Int -> [a] -> ([a],[a])")
-; '("takeWhile"         . "(a -> Bool) -> [a] -> [a]")
-; '("dropWhile"         . "(a -> Bool) -> [a] -> [a]")
-; '("span"              . "(a -> Bool) -> [a] -> ([a],[a])")
-; '("break"             . "(a -> Bool) -> [a] -> ([a],[a])")
-; '("lines"             . "String -> [String]")
-; '("words"             . "String -> [String]")
-; '("unlines"           . "[String] -> String")
-; '("unwords"           . "[String] -> String")
-; '("reverse"           . "[a] -> [a]")
-; '("and"               . "[Bool] -> Bool")
-; '("or"                . "[Bool] -> Bool")
-; '("any"               . "(a -> Bool) -> [a] -> Bool")
-; '("all"               . "(a -> Bool) -> [a] -> Bool")
-; '("elem"              . "(Eq a) => a -> [a] -> Bool")
-; '("notElem"           . "(Eq a) => a -> [a] -> Bool")
-; '("lookup"            . "(Eq a) => a -> [(a,b)] -> Maybe b")
-; '("sum"               . "(Num a) => [a] -> a")
-; '("product"           . "(Num a) => [a] -> a")
-; '("maximum"           . "(Ord a) => [a] -> a")
-; '("minimum"           . "(Ord a) => [a] -> a")
-; '("concatMap"         . "(a -> [b]) -> [a] -> [b]")
-; '("zip"               . "[a] -> [b] -> [(a,b)]")
-; '("zip3"              . "[a] -> [b] -> [c] -> [(a,b,c)]")
-; '("zipWith"           . "(a->b->c) -> [a]->[b]->[c]")
-; '("zipWith3"          . "(a->b->c->d) -> [a]->[b]->[c]->[d]")
-; '("unzip"             . "[(a,b)] -> ([a],[b])")
-; '("unzip3"            . "[(a,b,c)] -> ([a],[b],[c])")
-; '("readsPrec"         . "(Read a) => Int -> ReadS a")
-; '("readList"          . "(Read a) => ReadS [a]")
-; '("showsPrec"         . "(Show a) => Int -> a -> ShowS")
-; '("showList"          . "(Show a) => [a] -> ShowS")
-; '("reads"             . "(Read a) => ReadS a")
-; '("shows"             . "(Show a) => a -> ShowS")
-; '("read"              . "(Read a) => String -> a")
-; '("show"              . "(Show a) => a -> String")
-; '("showChar"          . "Char -> ShowS")
-; '("showString"        . "String -> ShowS")
-; '("showParen"         . "Bool -> ShowS -> ShowS")
-; '("readParen"         . "Bool -> ReadS a -> ReadS a")
-; '("lex"               . "ReadS String")
-; '("lexDigits"         . "ReadS String ")
-; '("nonnull"           . "(Char -> Bool) -> ReadS String")
-; '("lexLitChar"        . "ReadS String")
-; ;'("showSigned"       . "(Real a) => (a -> ShowS) -> Int -> a -> ShowS")
-; ;'("readSigned"       . "(Real a) => ReadS a -> ReadS a")
-; ;'("showInt"          . "(Integral a) => a -> ShowS")
-; ;'("readInt"          . "(Integral a) => a -> (Char -> Bool) -> (Char -> Int) -> ReadS a")
-; '("readDec"           . "(Integral a) => ReadS a")
-; '("readOct"           . "(Integral a) => ReadS a")
-; '("readHex"           . "(Integral a) => ReadS a")
-; ; IO fcts
-; '("fail"              . "IOError -> IO a")
-; '("userError"         . "String -> IOError")
-; '("catch"             . "IO a -> (IOError -> IO a) -> IO a ")
-; '("putChar"           . "Char -> IO ()")
-; '("putStr"            . "String -> IO ()")
-; '("putStrLn"          . "String -> IO ()")
-; '("print"             . "Show a => a -> rIO ()")
-; '("getChar"           . "IO Char")
-; '("getLine"           . "IO String")
-; '("getContents"       . "IO String")
-; '("interact"          . "(String -> String) -> IO ()")
-; '("readFile"          . "FilePath -> IO String")
-; '("writeFile"         . "FilePath -> String -> IO ()")
-; '("appendFile"        . "FilePath -> String -> IO ()")
-; '("readIO"            . "Read a => String -> IO a")
-; '("readLn"            . "Read a => IO a")
- ;; ---------------------------------------------------------------------------
- ;; taken from Prelude Index of the Haskell 1.4 report
- '("!!"             . "[a] -> Int -> a ")
- '("$"              . "(a -> b) -> a -> b ")
- '("&&"             . "Bool -> Bool -> Bool ")
- '("||"             . "Bool -> Bool -> Bool ")
- '("*"              . "Num a => a -> a -> a ")
- '("**"             . "Floating a => a -> a -> a ")
- '("+"              . "Num a => a -> a -> a")
- '("++"             . "MonadPlus m => m a -> m a -> m a ")
- '("-"              . "Num a => a -> a -> a ")
- '("."              . "(b -> c) -> (a -> b) -> a -> c ")
- '("/"              . "Fractional a => a -> a -> a ")
- '("/="             . "Eq a => a -> a -> Bool ")
- '("<"              . "Ord a => a -> a -> Bool ")
- '("<="             . "Ord a => a -> a -> Bool ")
- '("=="             . "Eq a => a -> a -> Bool ")
- '(">"              . "Ord a => a -> a -> Bool ")
- '(">="             . "Ord a => a -> a -> Bool ")
- '(">>"             . "m a -> m b -> m b ")
- '(">>="            . "Monad m => m a -> (a -> m b) -> m b ")
- '("^"              . "(Num a, Integral b) => a -> b -> a ")
- '("^^"             . "(Fractional a, Integral b) => a -> b -> a ")
- '("abs"              . "Num a => a -> a ")
- '("accumulate"       . "Monad m => [m a] -> m [a] ")
- '("acos"             . "Floating a => a -> a ")
- '("acosh"            . "Floating a => a -> a ")
- '("all"              . "(a -> Bool) -> [a] -> Bool ")
- '("and"              . "[Bool] -> Bool ")
- '("any"              . "(a -> Bool) -> [a] -> Bool ")
- '("appendFile"       . "FilePath -> String -> IO ()")
- '("applyM"           . "Monad m => (a -> m b) -> m a -> m b")
- '("asTypeOf"         . "a -> a -> a ")
- '("asin"             . "Floating a => a -> a ")
- '("asinh"            . "Floating a => a -> a ")
- '("atan"             . "Floating a => a -> a ")
- '("atan2"            . "RealFrac a => a -> a ")
- '("atanh"            . "Floating a => a -> a ")
- '("break"            . "(a -> Bool) -> [a] -> ([a], [a]) ")
- '("catch"            . "IO a -> (IOError -> IO a) -> IO a ")
- '("ceiling"          . "(RealFrac a, Integral b) => a -> b ")
- '("compare"          . "Ord a => a -> a -> Ordering ")
- '("concat"           . "MonadPlus m => [m a] -> m a ")
- '("concatMap"        . "(a -> [b]) -> [a] -> [b]")
- '("const"            . "a -> b -> a")
- '("cos"              . "Floating a => a -> a ")
- '("cosh"             . "Floating a => a -> a ")
- '("curry"            . "((a, b) -> c) -> a -> b -> c")
- '("cycle"            . "[a] -> [a] ")
- '("decodeFloat"      . "RealFloat a => a -> (Integer, Int) ")
- '("div"              . "Integral a => a -> a -> a ")
- '("divMod"           . "Integral a => a -> a -> (a, a) ")
- '("drop"             . "Int -> [a] -> [a] ")
- '("dropWhile"        . "(a -> Bool) -> [a] -> [a] ")
- '("elem"             . "Eq a => a -> [a] -> Bool ")
- '("encodeFloat"      . "RealFloat a => Integer -> Int -> a ")
- '("enumFrom"         . "Enum a => a -> [a] ")
- '("enumFromThen"     . "Enum a => a -> a -> [a] ")
- '("enumFromThenTo"   . "Enum a => a -> a -> a -> [a] ")
- '("enumFromTo"       . "Enum a => a -> a -> [a] ")
- '("error"            . "String -> a ")
- '("even"             . "Integral a => a -> Bool")
- '("exp"              . "Floating a => a -> a ")
- '("exponent"         . "RealFloat a => a -> Int ")
- '("fail"             . "IOError -> IO a ")
- '("filter"           . "MonadZero m => (a -> Bool) -> m a -> m a ")
- '("flip"             . "(a -> b -> c) -> (b -> a -> c)")
- '("floatDigits"      . "RealFloat a => a -> Int ")
- '("floatRadix"       . "RealFloat a => a -> Integer ")
- '("floatRange"       . "RealFloat a => a -> (Int, Int) ")
- '("floor"            . "(RealFrac a, Integral b) => a -> b ")
- '("foldl"            . "(a -> b -> a) -> a -> [b] -> a ")
- '("foldl1"           . "(a -> a -> a) -> [a] -> a ")
- '("foldr"            . "(a -> b -> b) -> b -> [a] -> b ")
- '("foldr1"           . "(a -> a -> a) -> [a] -> a ")
- '("fromEnum"         . "Enum a => a -> Int ")
- '("fromInteger"      . "Num a => Integer -> a ")
- '("fromIntegral"     . "(Integral a, Num b) => a -> b")
- '("fromRational"     . "Fractional a => Rational -> a ")
- '("fromRealFrac"     . "(RealFrac a, Fractional b) => a -> b")
- '("fst"              . "(a, b) -> a")
- '("gcd"              . "(Integral a) => a -> a -> a")
- '("getChar"          . "IO Char ")
- '("getContents"      . "IO String")
- '("getLine"          . "IO Char ")
- '("guard"            . "MonadZero m => Bool -> m ()")
- '("head"             . "[a] -> a")
- '("id"               . "a -> a")
- '("init"             . "[a] -> [a]")
- '("interact"         . "(String -> String) -> IO ()")
- '("isDenormalized"   . "RealFloat a => a -> Bool ")
- '("isIEEE"           . "RealFloat a => a -> Bool ")
- '("isInfinite"       . "RealFloat a => a -> Bool ")
- '("isNaN"            . "RealFloat a => a -> Bool ")
- '("isNegativeZero"   . "RealFloat a => a -> Bool ")
- '("iterate"          . "(a -> a) -> a -> [a] ")
- '("last"             . "[a] -> a ")
- '("lcm"              . "Integral a => a -> a -> a")
- '("length"           . "[a] -> Int")
- '("lex"              . "ReadS String ")
- '("lines"            . "String -> [String]")
- '("log"              . "Floating a => a -> a ")
- '("logBase"          . "Floating a => a -> a -> a ")
- '("lookup"           . "Eq a => a -> [(a, b)] -> Maybe b")
- '("map"              . "Functor f => (a -> b) -> f a -> f b ")
- '("mapM"             . "Monad m => (a -> m b) -> [a] -> m [b]")
- '("mapM_"            . "Monad m => (a -> m b) -> [a] -> m ()")
- '("max"              . "Ord a => a -> a -> a ")
- '("maxBound"         . "Bounded a => a ")
- '("maximum"          . "Ord a => [a] -> a")
- '("maybe"            . "b -> (a -> b) -> Maybe a -> b ")
- '("min"              . "Ord a => a -> a -> a ")
- '("minBound"         . "Bounded a => a ")
- '("minimum"          . "Ord a => [a] -> a")
- '("mod"              . "Integral a => a -> a -> a ")
- '("negate"           . "Num a => a -> a ")
- '("not"              . "Bool -> Bool")
- '("notElem"          . "Eq a => a -> [a] -> Bool")
- '("null"             . "[a] -> Bool")
- '("odd"              . "Integral a => a -> Bool")
- '("or"               . "[Bool] -> Bool")
- '("otherwise"        . "Bool")
- '("pi"               . "Floating a => a ")
- '("pred"             . "Enum a => a -> a ")
- '("print"            . "Show a => IO () ")
- '("product"          . "Num a => [a] -> a")
- '("properFraction"   . "(RealFrac a, Integral b) => a -> (b, a) ")
- '("putChar"          . "Char -> IO ()")
- '("putStr"           . "String -> IO ()")
- '("putStrLn"         . "String -> IO () ")
- '("quot"             . "Integral a => a -> a -> a ")
- '("quotRem"          . "Integral a => a -> a -> (a, a) ")
- '("read"             . "Read a => String -> a")
- '("readFile"         . "FilePath -> IO String")
- '("readIO"           . "Read a => String -> IO a ")
- '("readList"         . "Read a => ReadS [a]")
- '("readLn"           . "Read a => IO a")
- '("readParen"        . "Bool -> ReadS a -> ReadS a")
- '("reads"            . "Read a => ReadS a ")
- '("readsPrec"        . "Read a => Int -> ReadS a")
- '("recip"            . "Fractional a => a -> a ")
- '("rem"              . "Integral a => a -> a -> a ")
- '("repeat"           . "a -> [a] ")
- '("replicate"        . "Int -> a -> [a] ")
- '("return"           . "Monad m => a -> m a ")
- '("reverse"          . "[a] -> [a] ")
- '("round"            . "(RealFrac a, Integral b) => a -> b ")
- '("scaleFloat"       . "RealFloat a => Int -> a -> a ")
- '("scanl"            . "(a -> b -> a) -> a -> [b] -> [a] ")
- '("scanl1"           . "(a -> a -> a) -> [a] -> [a] ")
- '("scanr"            . "(a -> b -> b) -> b -> [a] -> [b] ")
- '("scanr1"           . "(a -> a -> a) -> [a] -> [a] ")
- '("seq"              . "Eval a => a -> a -> b ")
- '("sequence"         . "Monad m => [m a] -> m () ")
- '("show"             . "Show a => a -> String ")
- '("showChar"         . "Char -> ShowS")
- '("showList"         . "Show a => [a] -> ShowS")
- '("showParen"        . "Bool -> ShowS -> ShowS")
- '("showString"       . "String -> ShowS")
- '("shows"            . "Show a => a -> ShowS ")
- '("showsPrec"        . "Show a => Int -> a -> ShowS ")
- '("significand"      . "RealFloat a => a -> a ")
- '("signum"           . "Num a => a -> a ")
- '("sin"              . "Floating a => a -> a ")
- '("sinh"             . "Floating a => a -> a ")
- '("snd"              . "(a, b) -> b")
- '("span"             . "(a -> Bool) -> [a] -> ([a], [a]) ")
- '("splitAt"          . "Int -> [a] -> ([a], [a]) ")
- '("sqrt"             . "Floating a => a -> a ")
- '("strict"           . "Eval a => (a -> b) -> (a -> b) ")
- '("subtract"         . "Num a => a -> a -> a")
- '("succ"             . "Enum a => a -> a ")
- '("sum"              . "Num a => [a] -> a ")
- '("tail"             . "[a] -> [a] ")
- '("take"             . "Int -> [a] -> [a] ")
- '("takeWhile"        . "(a -> Bool) -> [a] -> [a] ")
- '("tan"              . "Floating a => a -> a ")
- '("tanh"             . "Floating a => a -> a ")
- '("toEnum"           . "Enum a => Int -> a ")
- '("toInteger"        . "Integral a => a -> Integer ")
- '("toRational"       . "Real a => a -> Rational ")
- '("truncate"         . "(RealFrac a, Integral b) => a -> b ")
- '("uncurry"          . "(a -> b -> c) -> ((a, b) -> c)")
- '("undefined"        . "a ")
- '("unlines"          . "[String] -> String")
- '("until"            . "(a -> Bool) -> (a -> a) -> a -> a ")
- '("unwords"          . "[String] -> String")
- '("unzip"            . "[(a, b)] -> ([a], [b]) ")
- '("unzip3"           . "[(a, b, c)] -> ([a], [b], [c])")
- '("userError"        . "String  -> IOError")
- '("words"            . "String -> [String] ")
- '("writeFile"        . "FilePath -> String -> IO ()")
- '("zero"             . "MonadZero m => m a ")
- '("zip"              . "[a] -> [b] -> [(a, b)] ")
- '("zip3"             . "[a] -> [b] -> [c] -> [(a, b, c)]")
- '("zipWith"          . "(a -> b -> c) -> [a] -> [b] -> [c] ")
- '("zipWith3"         . "(a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]")
- ;; ---------------------------------------------------------------------------
- ;; The following functions are from the 1.4 Library Report (headers/ dir)
- ;; headers/Ratio.hs
- '("numerator"               . "(Integral a) => Ratio a -> a")
- '("denominator"             . "(Integral a) => Ratio a -> a")
- '("approxRational"          . "(RealFrac a) => a -> a -> Rational")
- ;; headers/Complex.hs
- '("realPart" . "(RealFloat a) => Complex a -> a")
- '("imagPart" . "(RealFloat a) => Complex a -> a")
- '("conjugate"	 . "(RealFloat a) => Complex a -> Complex a")
- '("mkPolar"		 . "(RealFloat a) => a -> a -> Complex a")
- '("cis"		 . "(RealFloat a) => a -> Complex a")
- '("polar"		 . "(RealFloat a) => Complex a -> (a,a)")
- '("magnitude" . "(RealFloat a) => Complex a -> a")
- '("phase" . "(RealFloat a) => Complex a -> a")
- ;; headers/Numeric.hs
- '("fromRat" . "(RealFloat a) => Rational -> a")
- '("fromRat'" . "(RealFloat a) => Rational -> a")
- '("scaleRat" . "Rational -> Int -> Rational -> Rational -> Int -> Rational -> (Rational, Int)")
- '("minExpt" . "Int")
- '("maxExpt" . "Int")
- '("expt" . "Integer -> Int -> Integer")
- '("expts" . "Array Int Integer")
- '("integerLogBase" . "Integer -> Integer -> Int")
- '("showSigned"    . "Real a => (a -> ShowS) -> Int -> a -> ShowS")
- '("showInt"    . "Integral a => a -> ShowS")
- '("readSigned" . "(Real a) => ReadS a -> ReadS a")
- '("readInt" . "(Integral a) => a -> (Char -> Bool) -> (Char -> Int) -> ReadS a")
- '("readDec" . "(Integral a) => ReadS a")
- '("readOct" . "(Integral a) => ReadS a")
- '("readHex" . "(Integral a) => ReadS a")
- '("showEFloat"     . "(RealFloat a) => Maybe Int -> a -> ShowS")
- '("showFFloat"     . "(RealFloat a) => Maybe Int -> a -> ShowS")
- '("showGFloat"     . "(RealFloat a) => Maybe Int -> a -> ShowS")
- '("showFloat"      . "(RealFloat a) => a -> ShowS")
- '("formatRealFloat" . "(RealFloat a) => FFFormat -> Maybe Int -> a -> String")
- '("roundTo" . "Int -> Int -> [Int] -> (Int, [Int])")
- '("floatToDigits" . "(RealFloat a) => Integer -> a -> ([Int], Int)")
- '("readFloat"     . "(RealFloat a) => ReadS a")
- '("lexDigits"        . "ReadS String ")
- '("nonnull"          . "(Char -> Bool) -> ReadS String")
- ;; headers/Ix.hs
- '("rangeSize" . "Ix a => (a,a) -> Int")
- ;; headers/Array.hs
- '("array"           . "(Ix a) => (a,a) -> [(a,b)] -> Array a b")
- '("listArray"       . "(Ix a) => (a,a) -> [b] -> Array a b")
- ; '("(!)            . "(Ix a) => Array a b -> a -> b")
- '("bounds"          . "(Ix a) => Array a b -> (a,a)")
- '("indices"         . "(Ix a) => Array a b -> [a]")
- '("elems"           . "(Ix a) => Array a b -> [b]")
- '("assocs"          . "(Ix a) => Array a b -> [(a,b)]")
- '("accumArray"      . "(Ix a) => (b -> c -> b) -> b -> (a,a) -> [(a,c)] -> Array a b")
- ; (//)            . (Ix a) => Array a b -> [(a,b)] -> Array a b
- '("accum"           . "(Ix a) => (b -> c -> b) -> Array a b -> [(a,c)] -> Array a b")
- '("ixmap"           . "(Ix a, Ix b) => (a,a) -> (a -> b) -> Array b c -> Array a c")
- ;; headers/List.hs (omitted; see 1.2 List module above)
- ;; headers/Maybe.hs
- '("isJust"                 . "Maybe a -> Bool")
- '("fromJust"               . "Maybe a -> a")
- '("fromMaybe"              . "a -> Maybe a -> a")
- '("maybeToList"            . "Maybe a -> [a]")
- '("listToMaybe"            . "[a] -> Maybe a")
- '("catMaybes"              . "[Maybe a] -> [a]")
- '("mapMaybe"               . "(a -> Maybe b) -> [a] -> [b]")
- '("unfoldr"                . "([a] -> Maybe ([a], a)) -> [a] -> ([a],[a])")
- ;; headers/Char.hs
- '("isAscii" . "Char -> Bool")
- '("isControl" . "Char -> Bool")
- '("isPrint" . "Char -> Bool")
- '("isSpace" . "Char -> Bool")
- '("isUpper" . "Char -> Bool")
- '("isLower" . "Char -> Bool")
- '("isAlpha" . "Char -> Bool")
- '("isDigit" . "Char -> Bool")
- '("isOctDigit" . "Char -> Bool")
- '("isHexDigit" . "Char -> Bool")
- '("isAlphanum" . "Char -> Bool")
- '("digitToInt" . "Char -> Int")
- '("intToDigit" . "Int -> Char")
- '("toUpper"                  . "Char -> Char")
- '("toLower"                  . "Char -> Char")
- '("ord"                     . "Char -> Int")
- '("chr"                     . "Int  -> Char")
- '("readLitChar"             . "ReadS Char")
- '("sshowLitChar"               . "Char -> ShowS")
- '("lexLitChar"          . "ReadS String")
- ;; headers/Monad.hs
- '("unless"           . "(Monad m) => Bool -> m () -> m ()")
- '("ap"               . "(Monad m) => m (a -> b) -> m a -> m b")
- '("liftM"            . "(Monad m) => (a -> b) -> (m a -> m b)")
- '("liftM2"           . "(Monad m) => (a -> b -> c) -> (m a -> m b -> m c)")
- '("liftM3"           . "(Monad m) => (a -> b -> c -> d) -> (m a -> m b -> m c -> m d)")
- '("liftM4"           . "(Monad m) => (a -> b -> c -> d -> e) -> (m a -> m b -> m c -> m d -> m e)")
- '("liftM5"           . "(Monad m) => (a -> b -> c -> d -> e -> f) -> (m a -> m b -> m c -> m d -> m e -> m f)")
- ;; headers/IO.hs
-; '("try"            . "IO a -> IO (Either IOError a)")
-; '("bracket"        . "IO a -> (a -> IO b) -> (a -> IO c) -> IO c")
-; '("bracket_"        . "IO a -> (a -> IO b) -> IO c -> IO c")
- ;; Directory
-; '("createDirectory"  . "FilePath -> IO ()")
-; '("removeDirectory"  . "FilePath -> IO ()")
-; '("removeFile"  . "FilePath -> IO ()")
-; '("renameDirectory"  . "FilePath -> FilePath -> IO ()")
-; '("renameFile"  . "FilePath -> FilePath -> IO ()")
-; '("getDirectoryContents"  . "FilePath -> IO [FilePath]")
-; '("getCurrentDirectory"  . "IO FilePath")
-; '("setCurrentDirectory"  . "FilePath -> IO ()")
-; '("doesFileExist" . "FilePath -> IO Bool")
-; '("doesDirectoryExist" . "FilePath -> IO Bool")
-; '("getPermissions" . "FilePath -> IO Permissions")
-; '("setPermissions" . "FilePath -> Permissions -> IO ()")
-; '("getModificationTime" . "FilePath -> IO ClockTime")
- ;; System
-; '("getArgs"  . "IO [String]")
-; '("getProgName"  . "IO String")
-; '("getEnv"         . "String -> IO String")
-; '("system"         . "String -> IO ExitCode")
-; '("exitWith"    . "ExitCode -> IO a")
- ;; headers/Time.hs
- '("getClockTime"            . "IO ClockTime")
- '("addToClockTime"          . "TimeDiff     -> ClockTime -> ClockTime")
- '("diffClockTimes"          . "ClockTime    -> ClockTime -> TimeDiff")
- '("toCalendarTime"          . "ClockTime    -> IO CalendarTime")
- '("toUTCTime"               . "ClockTime    -> CalendarTime")
- '("toClockTime"             . "CalendarTime -> ClockTime")
- '("calendarTimeToString"    . "CalendarTime -> String")
- '("formatCalendarTime" . "TimeLocale -> String -> CalendarTime -> String")
- '("show2" . "Int -> String")
- '("show2'" . "Int -> String")
- '("show3" . "Int -> String")
- ;; headers/Locale.hs
- '("defaultTimeLocale" . "TimeLocale ")
- ;; headers/Random.hs
- '("random"    . "(Integer,Integer) -> Integer -> [Integer]")
- '("randomIO"  . "(Integer,Integer) -> IO [Integer]")
- )
-"alist of prelude functions and their types.")
+  (list
+   ;; Prelude
+   '("!!" . "[a] -> Int -> a")
+   '("$" . "(a -> b) -> a -> b")
+   '("$!" . "(a -> b) -> (a -> b)")
+   '("&&" . "Bool -> Bool -> Bool")
+   '("||" . "Bool -> Bool -> Bool")
+   '("*" . "Num a => a -> a -> a")
+   '("**" . "Floating a => a -> a -> a")
+   '("+" . "Num a => a -> a -> a")
+   '("++" . "[a] -> [a] -> [a]")
+   '("-" . "Num a => a -> a -> a")
+   '("." . "(b -> c) -> (a -> b) -> a -> c")
+   '("/" . "Fractional a => a -> a -> a")
+   '("/=" . "Eq a => a -> a -> Bool")
+   '("<" . "Ord a => a -> a -> Bool")
+   '("<=" . "Ord a => a -> a -> Bool")
+   '("==" . "Eq a => a -> a -> Bool")
+   '("=<<" . "Monad a => (a -> m b) -> m a -> m b")
+   '(">" . "Ord a => a -> a -> Bool")
+   '(">=" . "Ord a => a -> a -> Bool")
+   '(">>" . "Monad m => m a -> m b -> m b")
+   '(">>=" . "Monad m => m a -> (a -> m b) -> m b")
+   '("^" . "(Num a, Integral b) => a -> b -> a")
+   '("^^" . "(Fractional a, Integral b) => a -> b -> a")
+   '("abs" . "Num a => a -> a")
+   '("sequence" . "Monad m => [m a] -> m [a]")
+   '("acos" . "Floating a => a -> a")
+   '("acosh" . "Floating a => a -> a")
+   '("all" . "(a -> Bool) -> [a] -> Bool")
+   '("and" . "[Bool] -> Bool")
+   '("any" . "(a -> Bool) -> [a] -> Bool")
+   '("appendFile" . "FilePath -> String -> IO ()")
+   '("applyM" . "Monad m => (a -> m b) -> m a -> m b")
+   '("asTypeOf" . "a -> a -> a")
+   '("asin" . "Floating a => a -> a")
+   '("asinh" . "Floating a => a -> a")
+   '("atan" . "Floating a => a -> a")
+   '("atan2" . "RealFrac a => a -> a")
+   '("atanh" . "Floating a => a -> a")
+   '("break" . "(a -> Bool) -> [a] -> ([a], [a])")
+   '("catch" . "IO a -> (IOError -> IO a) -> IO a")
+   '("ceiling" . "(RealFrac a, Integral b) => a -> b")
+   '("compare" . "Ord a => a -> a -> Ordering")
+   '("concat" . "MonadPlus m => [m a] -> m a")
+   '("concatMap" . "(a -> [b]) -> [a] -> [b]")
+   '("const" . "a -> b -> a")
+   '("cos" . "Floating a => a -> a")
+   '("cosh" . "Floating a => a -> a")
+   '("curry" . "((a, b) -> c) -> a -> b -> c")
+   '("cycle" . "[a] -> [a]")
+   '("decodeFloat" . "RealFloat a => a -> (Integer, Int)")
+   '("div" . "Integral a => a -> a -> a")
+   '("divMod" . "Integral a => a -> a -> (a, a)")
+   '("drop" . "Int -> [a] -> [a]")
+   '("dropWhile" . "(a -> Bool) -> [a] -> [a]")
+   '("elem" . "Eq a => a -> [a] -> Bool")
+   '("encodeFloat" . "RealFloat a => Integer -> Int -> a")
+   '("enumFrom" . "Enum a => a -> [a]")
+   '("enumFromThen" . "Enum a => a -> a -> [a]")
+   '("enumFromThenTo" . "Enum a => a -> a -> a -> [a]")
+   '("enumFromTo" . "Enum a => a -> a -> [a]")
+   '("error" . "String -> a")
+   '("even" . "Integral a => a -> Bool")
+   '("exp" . "Floating a => a -> a")
+   '("exponent" . "RealFloat a => a -> Int")
+   '("fail" . "Monad m => String -> m a")
+   '("flip" . "(a -> b -> c) -> (b -> a -> c)")
+   '("floatDigits" . "RealFloat a => a -> Int")
+   '("floatRadix" . "RealFloat a => a -> Integer")
+   '("floatRange" . "RealFloat a => a -> (Int, Int)")
+   '("floor" . "(RealFrac a, Integral b) => a -> b")
+   '("foldl" . "(a -> b -> a) -> a -> [b] -> a")
+   '("foldl1" . "(a -> a -> a) -> [a] -> a")
+   '("foldr" . "(a -> b -> b) -> b -> [a] -> b")
+   '("foldr1" . "(a -> a -> a) -> [a] -> a")
+   '("fromEnum" . "Enum a => a -> Int")
+   '("fromInteger" . "Num a => Integer -> a")
+   '("fromIntegral" . "(Integral a, Num b) => a -> b")
+   '("fromRational" . "Fractional a => Rational -> a")
+   '("fst" . "(a, b) -> a")
+   '("gcd" . "(Integral a) => a -> a -> a")
+   '("getChar" . "IO Char")
+   '("getContents" . "IO String")
+   '("getLine" . "IO String")
+   '("head" . "[a] -> a")
+   '("id" . "a -> a")
+   '("init" . "[a] -> [a]")
+   '("interact" . "(String -> String) -> IO ()")
+   '("ioError" . "IOError -> IO a")
+   '("isDenormalized" . "RealFloat a => a -> Bool")
+   '("isIEEE" . "RealFloat a => a -> Bool")
+   '("isInfinite" . "RealFloat a => a -> Bool")
+   '("isNaN" . "RealFloat a => a -> Bool")
+   '("isNegativeZero" . "RealFloat a => a -> Bool")
+   '("iterate" . "(a -> a) -> a -> [a]")
+   '("last" . "[a] -> a")
+   '("lcm" . "Integral a => a -> a -> a")
+   '("length" . "[a] -> Int")
+   '("lex" . "ReadS String")
+   '("lines" . "String -> [String]")
+   '("log" . "Floating a => a -> a")
+   '("logBase" . "Floating a => a -> a -> a")
+   '("lookup" . "Eq a => a -> [(a, b)] -> Maybe b")
+   '("map" . "Functor f => (a -> b) -> f a -> f b")
+   '("mapM" . "Monad m => (a -> m b) -> [a] -> m [b]")
+   '("mapM_" . "Monad m => (a -> m b) -> [a] -> m ()")
+   '("max" . "Ord a => a -> a -> a")
+   '("maxBound" . "Bounded a => a")
+   '("maximum" . "Ord a => [a] -> a")
+   '("maybe" . "b -> (a -> b) -> Maybe a -> b")
+   '("min" . "Ord a => a -> a -> a")
+   '("minBound" . "Bounded a => a")
+   '("minimum" . "Ord a => [a] -> a")
+   '("mod" . "Integral a => a -> a -> a")
+   '("negate" . "Num a => a -> a")
+   '("not" . "Bool -> Bool")
+   '("notElem" . "Eq a => a -> [a] -> Bool")
+   '("null" . "[a] -> Bool")
+   '("odd" . "Integral a => a -> Bool")
+   '("or" . "[Bool] -> Bool")
+   '("otherwise" . "Bool")
+   '("pi" . "Floating a => a")
+   '("pred" . "Enum a => a -> a")
+   '("print" . "Show a => IO ()")
+   '("product" . "Num a => [a] -> a")
+   '("properFraction" . "(RealFrac a, Integral b) => a -> (b, a)")
+   '("putChar" . "Char -> IO ()")
+   '("putStr" . "String -> IO ()")
+   '("putStrLn" . "String -> IO ()")
+   '("quot" . "Integral a => a -> a -> a")
+   '("quotRem" . "Integral a => a -> a -> (a, a)")
+   '("read" . "Read a => String -> a")
+   '("readFile" . "FilePath -> IO String")
+   '("readIO" . "Read a => String -> IO a")
+   '("readList" . "Read a => ReadS [a]")
+   '("readLn" . "Read a => IO a")
+   '("readParen" . "Bool -> ReadS a -> ReadS a")
+   '("reads" . "Read a => ReadS a")
+   '("readsPrec" . "Read a => Int -> ReadS a")
+   '("realToFrac" . "(Real a, Fractional b) => a -> b")
+   '("recip" . "Fractional a => a -> a")
+   '("rem" . "Integral a => a -> a -> a")
+   '("repeat" . "a -> [a]")
+   '("replicate" . "Int -> a -> [a]")
+   '("return" . "Monad m => a -> m a")
+   '("reverse" . "[a] -> [a]")
+   '("round" . "(RealFrac a, Integral b) => a -> b")
+   '("scaleFloat" . "RealFloat a => Int -> a -> a")
+   '("scanl" . "(a -> b -> a) -> a -> [b] -> [a]")
+   '("scanl1" . "(a -> a -> a) -> [a] -> [a]")
+   '("scanr" . "(a -> b -> b) -> b -> [a] -> [b]")
+   '("scanr1" . "(a -> a -> a) -> [a] -> [a]")
+   '("seq" . "Eval a => a -> a -> b")
+   '("sequence_" . "Monad m => [m a] -> m ()")
+   '("show" . "Show a => a -> String")
+   '("showChar" . "Char -> ShowS")
+   '("showList" . "Show a => [a] -> ShowS")
+   '("showParen" . "Bool -> ShowS -> ShowS")
+   '("showString" . "String -> ShowS")
+   '("shows" . "Show a => a -> ShowS")
+   '("showsPrec" . "Show a => Int -> a -> ShowS")
+   '("significand" . "RealFloat a => a -> a")
+   '("signum" . "Num a => a -> a")
+   '("sin" . "Floating a => a -> a")
+   '("sinh" . "Floating a => a -> a")
+   '("snd" . "(a, b) -> b")
+   '("span" . "(a -> Bool) -> [a] -> ([a], [a])")
+   '("splitAt" . "Int -> [a] -> ([a], [a])")
+   '("sqrt" . "Floating a => a -> a")
+   '("subtract" . "Num a => a -> a -> a")
+   '("succ" . "Enum a => a -> a")
+   '("sum" . "Num a => [a] -> a")
+   '("tail" . "[a] -> [a]")
+   '("take" . "Int -> [a] -> [a]")
+   '("takeWhile" . "(a -> Bool) -> [a] -> [a]")
+   '("tan" . "Floating a => a -> a")
+   '("tanh" . "Floating a => a -> a")
+   '("toEnum" . "Enum a => Int -> a")
+   '("toInteger" . "Integral a => a -> Integer")
+   '("toRational" . "Real a => a -> Rational")
+   '("truncate" . "(RealFrac a, Integral b) => a -> b")
+   '("uncurry" . "(a -> b -> c) -> ((a, b) -> c)")
+   '("undefined" . "a")
+   '("unlines" . "[String] -> String")
+   '("until" . "(a -> Bool) -> (a -> a) -> a -> a")
+   '("unwords" . "[String] -> String")
+   '("unzip" . "[(a, b)] -> ([a], [b])")
+   '("unzip3" . "[(a, b, c)] -> ([a], [b], [c])")
+   '("userError" . "String -> IOError")
+   '("words" . "String -> [String]")
+   '("writeFile" . "FilePath -> String -> IO ()")
+   '("zip" . "[a] -> [b] -> [(a, b)]")
+   '("zip3" . "[a] -> [b] -> [c] -> [(a, b, c)]")
+   '("zipWith" . "(a -> b -> c) -> [a] -> [b] -> [c]")
+   '("zipWith3" . "(a -> b -> c -> d) -> [a] -> [b] -> [c] -> [d]")
+   ;; Ratio
+   '("%" . "(Integral a) => a -> a -> Ratio a")
+   '("numerator" . "(Integral a) => Ratio a -> a")
+   '("denominator" . "(Integral a) => Ratio a -> a")
+   '("approxRational" . "(RealFrac a) => a -> a -> Rational")
+   ;; Complex
+   '("realPart" . "(RealFloat a) => Complex a -> a")
+   '("imagPart" . "(RealFloat a) => Complex a -> a")
+   '("conjugate" . "(RealFloat a) => Complex a -> Complex a")
+   '("mkPolar" . "(RealFloat a) => a -> a -> Complex a")
+   '("cis" . "(RealFloat a) => a -> Complex a")
+   '("polar" . "(RealFloat a) => Complex a -> (a,a)")
+   '("magnitude" . "(RealFloat a) => Complex a -> a")
+   '("phase" . "(RealFloat a) => Complex a -> a")
+   ;; Numeric
+   '("fromRat" . "(RealFloat a) => Rational -> a")
+   '("showSigned" . "(Real a) => (a -> ShowS) -> Int -> a -> ShowS")
+   '("showInt" . "Integral a => a -> ShowS")
+   '("readSigned" . "(Real a) => ReadS a -> ReadS a")
+   '("readInt" . "(Integral a) => a -> (Char -> Bool) -> (Char -> Int) -> ReadS a")
+   '("readDec" . "(Integral a) => ReadS a")
+   '("readOct" . "(Integral a) => ReadS a")
+   '("readHex" . "(Integral a) => ReadS a")
+   '("showEFloat" . "(RealFloat a) => Maybe Int -> a -> ShowS")
+   '("showFFloat" . "(RealFloat a) => Maybe Int -> a -> ShowS")
+   '("showGFloat" . "(RealFloat a) => Maybe Int -> a -> ShowS")
+   '("showFloat" . "(RealFloat a) => a -> ShowS")
+   '("floatToDigits" . "(RealFloat a) => Integer -> a -> ([Int], Int)")
+   '("readFloat" . "(RealFloat a) => ReadS a")
+   '("lexDigits" . "ReadS String")
+   ;; Ix
+   '("range" . "(Ix a) => (a,a) -> [a]")
+   '("index" . "(Ix a) => (a,a) -> a -> Int")
+   '("inRange" . "(Ix a) => (a,a) -> a -> Bool")
+   '("rangeSize" . "(Ix a) => (a,a) -> Int")
+   ;; Array
+   '("array" . "(Ix a) => (a,a) -> [(a,b)] -> Array a b")
+   '("listArray" . "(Ix a) => (a,a) -> [b] -> Array a b")
+   '("!" . "(Ix a) => Array a b -> a -> b")
+   '("bounds" . "(Ix a) => Array a b -> (a,a)")
+   '("indices" . "(Ix a) => Array a b -> [a]")
+   '("elems" . "(Ix a) => Array a b -> [b]")
+   '("assocs" . "(Ix a) => Array a b -> [(a,b)]")
+   '("accumArray" . "(Ix a) => (b -> c -> b) -> b -> (a,a) -> [(a,c)] -> Array a b")
+   '("//" . "(Ix a) => Array a b -> [(a,b)] -> Array a b")
+   '("accum" . "(Ix a) => (b -> c -> b) -> Array a b -> [(a,c)] -> Array a b")
+   '("ixmap" . "(Ix a, Ix b) => (a,a) -> (a -> b) -> Array b c -> Array a c")
+   ;; List
+   '("elemIndex" . "Eq a => a -> [a] -> Maybe Int")
+   '("elemIndices" . "Eq a => a -> [a] -> [Int]")
+   '("find" . "(a -> Bool) -> [a] -> Maybe a")
+   '("findIndex" . "(a -> Bool) -> [a] -> Maybe Int")
+   '("findIndices" . "(a -> Bool) -> [a] -> [Int]")
+   '("nub" . "Eq a => [a] -> [a]")
+   '("nubBy" . "(a -> a -> Bool) -> [a] -> [a]")
+   '("delete" . "Eq a => a -> [a] -> [a]")
+   '("deleteBy" . "(a -> a -> Bool) -> a -> [a] -> [a]")
+   '("\\\\" . "Eq a => [a] -> [a] -> [a]")
+   '("deleteFirstsBy" . "(a -> a -> Bool) -> [a] -> [a] -> [a]")
+   '("union" . "Eq a => [a] -> [a] -> [a]")
+   '("unionBy" . "(a -> a -> Bool) -> [a] -> [a] -> [a]")
+   '("intersect" . "Eq a => [a] -> [a] -> [a]")
+   '("intersectBy" . "(a -> a -> Bool) -> [a] -> [a] -> [a]")
+   '("intersperse" . "a -> [a] -> [a]")
+   '("transpose" . "[[a]] -> [[a]]")
+   '("partition" . "(a -> Bool) -> [a] -> ([a],[a])")
+   '("group" . "Eq a => [a] -> [[a]]")
+   '("groupBy" . "(a -> a -> Bool) -> [a] -> [[a]]")
+   '("inits" . "[a] -> [[a]]")
+   '("tails" . "[a] -> [[a]]")
+   '("isPrefixOf" . "Eq a => [a] -> [a] -> Bool")
+   '("isSuffixOf" . "Eq a => [a] -> [a] -> Bool")
+   '("mapAccumL" . "(a -> b -> (a, c)) -> a -> [b] -> (a, [c])")
+   '("mapAccumR" . "(a -> b -> (a, c)) -> a -> [b] -> (a, [c])")
+   '("unfoldr" . "(b -> Maybe (a,b)) -> b -> [a]")
+   '("sort" . "Ord a => [a] -> [a]")
+   '("sortBy" . "(a -> a -> Ordering) -> [a] -> [a]")
+   '("insert" . "Ord a => a -> [a] -> [a]")
+   '("insertBy" . "(a -> a -> Ordering) -> a -> [a] -> [a]")
+   '("maximumBy" . "(a -> a -> Ordering) -> [a] -> a")
+   '("minimumBy" . "(a -> a -> Ordering) -> [a] -> a")
+   '("genericLength" . "Integral a => [b] -> a")
+   '("genericTake" . "Integral a => a -> [b] -> [b]")
+   '("genericDrop" . "Integral a => a -> [b] -> [b]")
+   '("genericSplitAt" . "Integral a => a -> [b] -> ([b],[b])")
+   '("genericIndex" . "Integral a => [b] -> a -> b")
+   '("genericReplicate" . "Integral a => a -> b -> [b]")
+   '("zip4" . "[a] -> [b] -> [c] -> [d] -> [(a,b,c,d)]")
+   '("zip5" . "[a] -> [b] -> [c] -> [d] -> [e] -> [(a,b,c,d,e)]")
+   '("zip6" . "[a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [(a,b,c,d,e,f)]")
+   '("zip7" . "[a] -> [b] -> [c] -> [d] -> [e] -> [f] -> [g] -> [(a,b,c,d,e,f,g)]")
+   '("zipWith4" . "(a->b->c->d->e) -> [a]->[b]->[c]->[d]->[e]")
+   '("zipWith5" . "(a->b->c->d->e->f) -> [a]->[b]->[c]->[d]->[e]->[f]")
+   '("zipWith6" . "(a->b->c->d->e->f->g) -> [a]->[b]->[c]->[d]->[e]->[f]->[g]")
+   '("zipWith7" . "(a->b->c->d->e->f->g->h) -> [a]->[b]->[c]->[d]->[e]->[f]->[g]->[h]")
+   '("unzip4" . "[(a,b,c,d)] -> ([a],[b],[c],[d])")
+   '("unzip5" . "[(a,b,c,d,e)] -> ([a],[b],[c],[d],[e])")
+   '("unzip6" . "[(a,b,c,d,e,f)] -> ([a],[b],[c],[d],[e],[f])")
+   '("unzip7" . "[(a,b,c,d,e,f,g)] -> ([a],[b],[c],[d],[e],[f],[g])")
+   ;; Maybe
+   '("isJust" . "Maybe a -> Bool")
+   '("isNothing" . "Maybe a -> Bool")
+   '("fromJust" . "Maybe a -> a")
+   '("fromMaybe" . "a -> Maybe a -> a")
+   '("listToMaybe" . "[a] -> Maybe a")
+   '("maybeToList" . "Maybe a -> [a]")
+   '("catMaybes" . "[Maybe a] -> [a]")
+   '("mapMaybe" . "(a -> Maybe b) -> [a] -> [b]")
+   ;; Char
+   '("isAscii" . "Char -> Bool")
+   '("isLatin1" . "Char -> Bool")
+   '("isControl" . "Char -> Bool")
+   '("isPrint" . "Char -> Bool")
+   '("isSpace" . "Char -> Bool")
+   '("isUpper" . "Char -> Bool")
+   '("isLower" . "Char -> Bool")
+   '("isAlpha" . "Char -> Bool")
+   '("isDigit" . "Char -> Bool")
+   '("isOctDigit" . "Char -> Bool")
+   '("isHexDigit" . "Char -> Bool")
+   '("isAlphaNum" . "Char -> Bool")
+   '("toUpper" . "Char -> Char")
+   '("toLower" . "Char -> Char")
+   '("digitToInt" . "Char -> Int")
+   '("intToDigit" . "Int -> Char")
+   '("ord" . "Char -> Int")
+   '("chr" . "Int -> Char")
+   '("lexLitChar" . "ReadS String")
+   '("readLitChar" . "ReadS Char")
+   '("showLitChar" . "Char -> ShowS")
+   ;; Monad
+   '("mzero" . "(MonadPlus m) => m a")
+   '("mplus" . "(MonadPlus m) => m a -> m a -> m a")
+   '("join" . "Monad m => m (m a) -> m a")
+   '("guard" . "MonadPlus m => Bool -> m ()")
+   '("when" . "Monad m => Bool -> m () -> m ()")
+   '("unless" . "Monad m => Bool -> m () -> m ()")
+   '("ap" . "Monad m => m (a -> b) -> m a -> m b")
+   '("mapAndUnzipM" . "Monad m => (a -> m (b,c)) -> [a] -> m ([b], [c])")
+   '("zipWithM" . "Monad m => (a -> b -> m c) -> [a] -> [b] -> m [c]")
+   '("zipWithM_" . "Monad m => (a -> b -> m c) -> [a] -> [b] -> m ()")
+   '("foldM" . "Monad m => (a -> b -> m a) -> a -> [b] -> m a")
+   '("filterM" . "Monad m => (a -> m Bool) -> [a] -> m [a]")
+   '("msum" . "MonadPlus m => [m a] -> m a")
+   '("liftM" . "Monad m => (a -> b) -> (m a -> m b)")
+   '("liftM2" . "Monad m => (a -> b -> c) -> (m a -> m b -> m c)")
+   '("liftM3" . "Monad m => (a -> b -> c -> d) -> (m a -> m b -> m c -> m d)")
+   '("liftM4" . "Monad m => (a -> b -> c -> d -> e) -> (m a -> m b -> m c -> m d -> m e)")
+   '("liftM5" . "Monad m => (a -> b -> c -> d -> e -> f) -> (m a -> m b -> m c -> m d -> m e -> m f)")
+   ;; IO
+   '("stdin" . "Handle")
+   '("stdout" . "Handle")
+   '("stderr" . "Handle")
+   '("openFile" . "FilePath -> IOMode -> IO Handle")
+   '("hClose" . "Handle -> IO ()")
+   '("hFileSize" . "Handle -> IO Integer")
+   '("hIsEOF" . "Handle -> IO Bool")
+   '("isEOF" . "IO Bool")
+   '("hSetBuffering" . "Handle -> BufferMode -> IO ()")
+   '("hGetBuffering" . "Handle -> IO BufferMode")
+   '("hFlush" . "Handle -> IO ()")
+   '("hGetPosn" . "Handle -> IO HandlePosn")
+   '("hSetPosn" . "HandlePosn -> IO ()")
+   '("hSeek" . "Handle -> SeekMode -> Integer -> IO ()")
+   '("hWaitForInput" . "Handle -> Int -> IO Bool")
+   '("hReady" . "Handle -> IO Bool")
+   '("hGetChar" . "Handle -> IO Char")
+   '("hGetLine" . "Handle -> IO String")
+   '("hLookAhead" . "Handle -> IO Char")
+   '("hGetContents" . "Handle -> IO String")
+   '("hPutChar" . "Handle -> Char -> IO ()")
+   '("hPutStr" . "Handle -> String -> IO ()")
+   '("hPutStrLn" . "Handle -> String -> IO ()")
+   '("hPrint" . "Show a => Handle -> a -> IO ()")
+   '("hIsOpen" . "Handle -> IO Bool")
+   '("hIsClosed" . "Handle -> IO Bool")
+   '("hIsReadable" . "Handle -> IO Bool")
+   '("hIsWritable" . "Handle -> IO Bool")
+   '("hIsSeekable" . "Handle -> IO Bool")
+   '("isAlreadyExistsError" . "IOError -> Bool")
+   '("isDoesNotExistError" . "IOError -> Bool")
+   '("isAlreadyInUseError" . "IOError -> Bool")
+   '("isFullError" . "IOError -> Bool")
+   '("isEOFError" . "IOError -> Bool")
+   '("isIllegalOperation" . "IOError -> Bool")
+   '("isPermissionError" . "IOError -> Bool")
+   '("isUserError" . "IOError -> Bool")
+   '("ioeGetErrorString" . "IOError -> String")
+   '("ioeGetHandle" . "IOError -> Maybe Handle")
+   '("ioeGetFileName" . "IOError -> Maybe FilePath")
+   '("try" . "IO a -> Either IOError a")
+   '("bracket" . "IO a -> (a -> IO b) -> (a -> IO c) -> IO c")
+   '("bracket_" . "IO a -> (a -> IO b) -> IO c -> IO c")
+   ;; Directory
+   '("readable" . "Permissions -> Bool")
+   '("writable" . "Permissions -> Bool")
+   '("executable" . "Permissions -> Bool")
+   '("searchable" . "Permissions -> Bool")
+   '("createDirectory" . "FilePath -> IO ()")
+   '("removeDirectory" . "FilePath -> IO ()")
+   '("removeFile" . "FilePath -> IO ()")
+   '("renameDirectory" . "FilePath -> FilePath -> IO ()")
+   '("renameFile" . "FilePath -> FilePath -> IO ()")
+   '("getDirectoryContents" . "FilePath -> IO [FilePath]")
+   '("getCurrentDirectory" . "IO FilePath")
+   '("setCurrentDirectory" . "FilePath -> IO ()")
+   '("doesFileExist" . "FilePath -> IO Bool")
+   '("doesDirectoryExist" . "FilePath -> IO Bool")
+   '("getPermissions" . "FilePath -> IO Permissions")
+   '("setPermissions" . "FilePath -> Permissions -> IO ()")
+   '("getModificationTime" . "FilePath -> IO ClockTime")
+   ;; System
+   '("getArgs" . "IO [String]")
+   '("getProgName" . "IO String")
+   '("getEnv" . "String -> IO String")
+   '("system" . "String -> IO ExitCode")
+   '("exitWith" . "ExitCode -> IO a")
+   '("exitFailure" . "IO a")
+   ;; Time
+   '("ctYear" . "CalendarTime -> Int")
+   '("ctMonth" . "CalendarTime -> Month")
+   '("ctDay" . "CalendarTime -> Int")
+   '("ctHour" . "CalendarTime -> Int")
+   '("ctMin" . "CalendarTime -> Int")
+   '("ctSec" . "CalendarTime -> Int")
+   '("ctPicosec" . "CalendarTime -> Integer")
+   '("ctWDay" . "CalendarTime -> Day")
+   '("ctYDay" . "CalendarTime -> Int")
+   '("ctTZName" . "CalendarTime -> String")
+   '("ctTZ" . "CalendarTime -> Int")
+   '("ctIsDST" . "CalendarTime -> Bool")
+   '("tdYear" . "TimeDiff -> Int")
+   '("tdMonth" . "TimeDiff -> Int")
+   '("tdDay" . "TimeDiff -> Int")
+   '("tdHour" . "TimeDiff -> Int")
+   '("tdMin" . "TimeDiff -> Int")
+   '("tdSec" . "TimeDiff -> Int")
+   '("tdPicosec" . "TimeDiff -> Integer")
+   '("getClockTime" . "IO ClockTime")
+   '("addToClockTime" . "TimeDiff -> ClockTime -> ClockTime")
+   '("diffClockTimes" . "ClockTime -> ClockTime -> TimeDiff")
+   '("toCalendarTime" . "ClockTime -> IO CalendarTime")
+   '("toUTCTime" . "ClockTime -> CalendarTime")
+   '("toClockTime" . "CalendarTime -> ClockTime")
+   '("calendarTimeToString" . "CalendarTime -> String")
+   '("formatCalendarTime" . "TimeLocale -> String -> CalendarTime -> String")
+   ;; Locale
+   '("wDays" . "TimeLocale -> [(String, String)]")
+   '("months" . "TimeLocale -> [(String, String)]")
+   '("amPm" . "TimeLocale -> (String, String)")
+   '("dateTimeFmt" . "TimeLocale -> String")
+   '("dateFmt" . "TimeLocale -> String")
+   '("timeFmt" . "TimeLocale -> String")
+   '("time12Fmt" . "TimeLocale -> String")
+   '("defaultTimeLocale" . "TimeLocale")
+   ;; CPUTime
+   '("getCPUTime" . "IO Integer")
+   '("cpuTimePrecision" . "Integer")
+   ;; Random
+   '("next" . "(RandomGen g) => g -> (Int, g)")
+   '("split" . "(RandomGen g) => g -> (g, g)")
+   '("mkStdGen" . "Int -> StdGen")
+   '("randomR" . "(Random a, RandomGen g) => (a, a) -> g -> (a, g)")
+   '("random" . "(Random a, RandomGen g) => g -> (a, g)")
+   '("randomRs" . "(Random a, RandomGen g) => (a, a) -> g -> [a]")
+   '("randoms" . "(Random a, RandomGen g) => g -> [a]")
+   '("randomRIO" . "(Random a) => (a,a) -> IO a")
+   '("randomIO" . "(Random a) => IO a")
+   '("newStdGen" . "IO StdGen")
+   '("setStdGen" . "StdGen -> IO ()")
+   '("getStdGen" . "IO StdGen")
+   '("getStdRandom" . "(StdGen -> (a, StdGen)) -> IO a"))
+  "alist of prelude functions and their types.")
 
 ;@cindex haskell-doc-strategy-ids
 
@@ -993,61 +1040,54 @@ It is probably best to manipulate this data structure with the commands
 ;@node Menubar Support, Haskell Doc Mode, Install as minor mode, top
 ;@section Menubar Support
 
+; get imenu
+(require 'imenu)
+
 ; a dummy definition needed for xemacs (I know, it's horrible :-(
-(if (and (string-match "XEmacs" emacs-version)
-	 (not (functionp 'define-key-after)))
-  (defun define-key-after (map seq con name)))
+(if (not (functionp 'define-key-after))
+    (defun define-key-after (map seq con name)))
 
 ;@cindex haskell-doc-install-keymap
 
-(defun haskell-doc-install-keymap ()
-  "Install a menu for `haskell-doc' as a submenu of `Hugs'."
- (interactive)
- ; define a keymap `haskell-doc-keymap' for the derive menu
- (if nil ; (keymapp haskell-doc-keymap)
-       nil
-     (setq haskell-doc-keymap (make-sparse-keymap))
-     (define-key haskell-doc-keymap [visit]
-       '("Visit FTP home site" . haskell-doc-visit-home))
-     (define-key haskell-doc-keymap [submit]
-       '("Submit bug report" . haskell-doc-submit-bug-report))
-     (define-key haskell-doc-keymap [dummy]
-       '("---" . nil))
-     (define-key haskell-doc-keymap [make-index]
-       '("Make global fct index" . haskell-doc-make-global-fct-index))
-     (define-key haskell-doc-keymap [global-types-on]
-       '("Toggle display of global types" . haskell-doc-show-global-types))
-     (define-key haskell-doc-keymap [strategy-on]
-       '("Toggle display of strategy ids" . haskell-doc-show-strategy))
-     (define-key haskell-doc-keymap [user-defined-on]
-       '("Toggle display of user defined ids" . haskell-doc-show-user-defined))
-     (define-key haskell-doc-keymap [prelude-on]
-       '("Toggle display of prelude functions" . haskell-doc-show-prelude))
-     (define-key haskell-doc-keymap [reserved-ids-on]
-       '("Toggle display of reserved ids" . haskell-doc-show-reserved))
-     (define-key haskell-doc-keymap [haskell-doc-on]
-       '("Toggle haskell-doc mode" . haskell-doc-mode))
-  )
+(defvar haskell-doc-keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map [visit]
+      '("Visit FTP home site" . haskell-doc-visit-home))
+    (define-key map [submit]
+      '("Submit bug report" . haskell-doc-submit-bug-report))
+    (define-key map [dummy] '("---" . nil))
+    (define-key map [make-index]
+      '("Make global fct index" . haskell-doc-make-global-fct-index))
+    (define-key map [global-types-on]
+      '("Toggle display of global types" . haskell-doc-show-global-types))
+    (define-key map [strategy-on]
+      '("Toggle display of strategy ids" . haskell-doc-show-strategy))
+    (define-key map [user-defined-on]
+      '("Toggle display of user defined ids" . haskell-doc-show-user-defined))
+    (define-key map [prelude-on]
+      '("Toggle display of prelude functions" . haskell-doc-show-prelude))
+    (define-key map [reserved-ids-on]
+      '("Toggle display of reserved ids" . haskell-doc-show-reserved))
+    (define-key map [haskell-doc-on]
+      '("Toggle haskell-doc mode" . haskell-doc-mode))
+    map))
 
- ; add the menu to the hugs menu as last entry
- (cond 
-  ((eq major-mode 'hugs-mode)
-   (let ((hugsmap (lookup-key hugs-mode-map [menu-bar Hugs])))
-	 (if (and (not haskell-doc-xemacs-p) ; XEmacs has problems here
-		  (not (lookup-key hugsmap [haskell-doc])))
-	     (define-key-after hugsmap [haskell-doc] (cons "Haskell-doc" haskell-doc-keymap)
-	       [Haskell-doc mode]))
-     ; add shortcuts for these commands
-     (define-key hugs-mode-map "\C-c\e/" 'haskell-doc-check-active) ; for testing 
-     (define-key hugs-mode-map "\C-c\C-o" 'haskell-doc-mode) 
-     (if (not haskell-doc-xemacs-p) 
-	 (define-key hugs-mode-map [C-S-M-mouse-3] 'haskell-doc-ask-mouse-for-type))))
-  ((eq major-mode 'haskell-mode)
-   ; add shortcuts for these commands
-   (local-set-key "\C-c\e/" 'haskell-doc-check-active) ; for testing 
-   (local-set-key "\C-c\C-o" 'haskell-doc-mode) 
-   (if (not haskell-doc-xemacs-p)
-       (local-set-key [C-S-M-mouse-3] 'haskell-doc-ask-mouse-for-type)) ) ))
+(defun haskell-doc-install-keymap ()
+  "Install a menu for `haskell-doc-mode' as a submenu of \"Hugs\"."
+  (interactive)
+  ;; Add the menu to the hugs menu as last entry.
+  (let ((hugsmap (lookup-key (current-local-map) [menu-bar Hugs])))
+    (if (not (or haskell-doc-xemacs-p ; XEmacs has problems here
+		 (not (keymapp hugsmap))
+		 (lookup-key hugsmap [haskell-doc])))
+	(define-key-after hugsmap [haskell-doc]
+	  (cons "Haskell-doc" haskell-doc-keymap)
+	  [Haskell-doc mode])))
+  ;; Add shortcuts for these commands.
+  (local-set-key "\C-c\e/" 'haskell-doc-check-active)
+  (local-set-key "\C-c\C-o" 'haskell-doc-mode)
+  (local-set-key [(control shift meta mouse-3)]
+		 'haskell-doc-ask-mouse-for-type))
 
 
 ;@node Haskell Doc Mode, Switch it on or off, Menubar Support, top
@@ -1057,7 +1097,8 @@ It is probably best to manipulate this data structure with the commands
 
 ;;;###autoload
 (defun haskell-doc-mode (&optional prefix)
-  "Enter haskell-doc-mode for showing fct types in the echo area (see variable docstring)."
+  "Enter `haskell-doc-mode' for showing fct types in the echo area.
+See variable docstring."
   (interactive "P")
 
   ;; Make sure it's on the post-command-idle-hook if defined, otherwise put
@@ -1068,45 +1109,36 @@ It is probably best to manipulate this data structure with the commands
   		 (> (prefix-numeric-value prefix) 0))
   	   (not haskell-doc-mode)))
 
-  (and haskell-doc-mode-hook
-       haskell-doc-mode
-       (run-hooks 'haskell-doc-mode-hook))
+  (cond
+   (haskell-doc-mode
+    ;; Turning the mode ON.
 
-  ;; ToDo: replace binding of `post-command-idle-hook' by `run-with-idle-timer'
-  (and haskell-doc-mode
-       (not (memq 'haskell-doc-mode-print-current-symbol-info 
-		  (if (boundp 'post-command-idle-hook)
-		     post-command-idle-hook
-		   post-command-hook)))
-       (add-hook (if (boundp 'post-command-idle-hook)
+    ;; ToDo: replace binding of `post-command-idle-hook' by
+    ;; `run-with-idle-timer'
+    (add-hook (if (boundp 'post-command-idle-hook)
+		  'post-command-idle-hook
+		'post-command-hook)
+	      'haskell-doc-mode-print-current-symbol-info nil 'local)
+    (and haskell-doc-show-global-types
+	 (progn
+	   (setq haskell-doc-minor-mode-string " Haskell-DOC")
+	   (haskell-doc-make-global-fct-index))  ; build type index for global fcts
+	 (setq haskell-doc-minor-mode-string " Haskell-Doc"))
+
+    (haskell-doc-install-keymap)
+
+    (run-hooks 'haskell-doc-mode-hook))
+   
+   ((not haskell-doc-mode)
+
+    (remove-hook (if (boundp 'post-command-idle-hook)
 		     'post-command-idle-hook
 		   'post-command-hook)
-		 'haskell-doc-mode-print-current-symbol-info))
-
-  (and (not haskell-doc-mode)
-       (memq 'haskell-doc-mode-print-current-symbol-info 
-	     (if (boundp 'post-command-idle-hook)
-			post-command-idle-hook
-		   post-command-hook))
-       (remove-hook (if (boundp 'post-command-idle-hook)
-			'post-command-idle-hook
-		   'post-command-hook)
-		 'haskell-doc-mode-print-current-symbol-info))
-
-  (and haskell-doc-mode
-       haskell-doc-show-global-types
-       (progn
-	 (setq haskell-doc-minor-mode-string " Haskell-DOC")
-	 (haskell-doc-make-global-fct-index))  ; build type index for global fcts
-       (setq haskell-doc-minor-mode-string " Haskell-Doc"))
-
-  (if haskell-doc-mode
-      (haskell-doc-install-keymap))
+		 'haskell-doc-mode-print-current-symbol-info 'local)))
 
   (and (interactive-p)
-       (if haskell-doc-mode
-           (message "haskell-doc-mode is enabled")
-         (message "haskell-doc-mode is disabled")))
+       (message "haskell-doc-mode is %s"
+		(if haskell-doc-mode "enabled" "disabled")))
   haskell-doc-mode)
 
 ;;@cindex haskell-doc-show-global-types
@@ -1132,10 +1164,10 @@ It is probably best to manipulate this data structure with the commands
 
 (defmacro haskell-doc-toggle-var (id prefix)
   ;; toggle variable or set it based on prefix value
-  (setq id
-	(if prefix
-	    (>= (prefix-numeric-value prefix) 0)
-	  (not id))) )
+  `(setq ,id
+	 (if ,prefix
+	     (>= (prefix-numeric-value ,prefix) 0)
+	   (not ,id))) )
 
 ;@cindex haskell-doc-show-global-types
 (defun haskell-doc-show-global-types (&optional prefix)
@@ -1177,15 +1209,14 @@ It is probably best to manipulate this data structure with the commands
 
 ;;;###autoload
 (defun turn-on-haskell-doc-mode ()
-  "Unequivocally turn on haskell-doc-mode (see variable documentation)."
+  "Unequivocally turn on `haskell-doc-mode' (see variable documentation)."
   (interactive)
   (haskell-doc-mode 1))
 
 ;@cindex  turn-off-haskell-doc-mode
 
-;;;###autoload
 (defun turn-off-haskell-doc-mode ()
-  "Unequivocally turn off haskell-doc-mode (see variable documentation)."
+  "Unequivocally turn off `haskell-doc-mode' (see variable documentation)."
   (interactive)
   (haskell-doc-mode 0))
 
@@ -1227,16 +1258,18 @@ directly to ask for the type of a function."
        ; take a nap
        (sit-for haskell-doc-idle-delay)
        ; good morning! read the word under the cursor for breakfast
-       (let ((current-symbol (haskell-doc-get-current-word)) ); (haskell-doc-current-symbol)) )
-             ; (current-fnsym  (haskell-doc-fnsym-in-current-sexp)))
-	 (haskell-doc-show-type current-symbol)) ))
-
+       (haskell-doc-show-type)))
 ;	 ; ToDo: find surrounding fct
 ;         (cond ((eq current-symbol current-fnsym)
 ;                (haskell-doc-show-type current-fnsym))
 ;               (t
 ;                (or nil ; (haskell-doc-print-var-docstring current-symbol)
 ;                    (haskell-doc-show-type current-fnsym)))))))
+
+(defun haskell-doc-current-info ()
+  "Return the info about symbol at point.
+Meant for `eldoc-print-current-symbol-info-function'."
+  (haskell-doc-sym-doc (haskell-doc-get-current-word)))
 
 
 ;@node Mouse interface, Print fctsym, Top level function, top
@@ -1251,7 +1284,7 @@ function. Only the user interface is different."
  (save-excursion
    (select-window (posn-window (event-end event)))
    (goto-char (posn-point (event-end event)))
-   (haskell-doc-show-type )))
+   (haskell-doc-show-type)))
  
 
 ;@node Print fctsym, Movement, Mouse interface, top
@@ -1270,15 +1303,26 @@ function. Only the user interface is different."
 ;@cindex haskell-doc-show-type
 
 ;;;###autoload
-(defun haskell-doc-show-type (&optional symbol)
+(defun haskell-doc-show-type (&optional sym)
   "Show the type of the function near point.
 For the function under point, show the type in the echo area.
-This information is extracted from the `haskell-doc-prelude-types' alist of prelude functions and their types, or from the local functions in the current buffer."
+This information is extracted from the `haskell-doc-prelude-types' alist
+of prelude functions and their types, or from the local functions in the
+current buffer."
   (interactive)
-  (let* ((sym (or symbol (haskell-doc-get-current-word))) 
-	; (haskell-doc-current-symbol))); (haskell-doc-fnsym-in-current-sexp)))
-        (printit t)
-        (i-am-prelude nil)
+  (unless sym (setq sym (haskell-doc-get-current-word)))
+  ;; if printed before do not print it again
+  (unless (string= sym (car haskell-doc-last-data))
+    (let ((doc (haskell-doc-sym-doc sym)))
+      (haskell-doc-message "%s" doc))))
+
+(defun haskell-doc-sym-doc (sym)
+  "Show the type of the function near point.
+For the function under point, show the type in the echo area.
+This information is extracted from the `haskell-doc-prelude-types' alist
+of prelude functions and their types, or from the local functions in the
+current buffer."
+  (let ((i-am-prelude nil)
         (i-am-fct nil)
         (type nil)
 	(is-reserved (haskell-doc-is-of sym haskell-doc-reserved-ids))
@@ -1287,10 +1331,6 @@ This information is extracted from the `haskell-doc-prelude-types' alist of prel
 	(is-user-defined (haskell-doc-is-of sym haskell-doc-user-defined-ids))
 	(is-prelude  (haskell-doc-is-of sym haskell-doc-prelude-types)))
    (cond
-	  ;; if printed before do not print it again
-          ((string= sym (car haskell-doc-last-data))
-           (setq printit nil)
-           (setq type (cdr haskell-doc-last-data)))
 	  ;; if reserved id (i.e. Haskell keyword
 	  ((and haskell-doc-show-reserved
 	       is-reserved)
@@ -1326,15 +1366,14 @@ This information is extracted from the `haskell-doc-prelude-types' alist of prel
 	       (setcdr haskell-doc-last-data type)))) )
     ;; ToDo: encode i-am-fct info into alist of types
     (and type
-         printit
 	 ; drop `::' if it's not a fct
 	 (let ( (str (cond ((and i-am-fct (not haskell-doc-chop-off-fctname))
 			    (format "%s :: %s" sym type))
 			   (t 
 			    (format "%s" type)))) )
 	   (if i-am-prelude
-	       (add-text-properties 0 (1- (length str)) '(face bold) str))
-	   (haskell-doc-message str)))) )
+	       (add-text-properties 0 (length str) '(face bold) str))
+	   str))))
 
 
 ;; ToDo: define your own notion of `near' to find surrounding fct
@@ -1421,9 +1460,7 @@ ToDo: Check for matching parenthesis!. "
 	   (char-equal (following-char) ?,))      ;     !,)
        (setq res t)
      (forward-line)
-     (let ( (here (point))
-	    (lim (progn (end-of-line) (point)))
-	    )
+     (let ((here (point)))
        (goto-char here)
        (skip-chars-forward " \t")
        (if (looking-at "--")  ; it is a comment line
@@ -1492,7 +1529,7 @@ ToDo: Also eliminate leading and trainling whitespace."
 ;@cindex haskell-doc-get-imenu-info
 (defun haskell-doc-get-imenu-info (obj kind)
   "Returns a string describing OBJ of KIND \(Variables, Types, Data\)."
-  (cond ((or (eq major-mode 'hugs-mode)
+  (cond ((or (eq major-mode 'haskell-hugs-mode)
              ;; GEM: Haskell Mode does not work with Haskell Doc
              ;;      under XEmacs 20.x
              (and (eq major-mode 'haskell-mode)
@@ -1639,41 +1676,6 @@ This function switches to and potentially loads many buffers."
 ;@section Movement
 ; Functions for moving in text and extracting the current word under the cursor
 
-; prbly nukable
-
-;; forward-sexp calls scan-sexps, which returns an error if it hits the
-;; beginning or end of the sexp.  This returns nil instead.
-(defun haskell-doc-forward-sexp-safe (&optional count)
-  "Move forward across one balanced expression (sexp).
-With argument, do it that many times.  Negative arg -COUNT means
-move backward across COUNT balanced expressions.
-Return distance in buffer moved, or nil."
-  (or count (setq count 1))
-  (condition-case err
-      (- (- (point) (progn
-                      (let ((parse-sexp-ignore-comments t))
-                        (forward-sexp count))
-                      (point))))
-    (error nil)))
-
-;; Do indirect function resolution if possible.
-;(defun haskell-doc-symbol-function (fsym)
-;  (let ((defn (and (fboundp fsym)
-;                   (symbol-function fsym))))
-;    (and (symbolp defn)
-;         (condition-case err
-;             (setq defn (indirect-function fsym))
-;           (error (setq defn nil))))
-;    defn))
-
-;; HWL: currently unused; this is taken from eldoc
-
-(defun haskell-doc-current-symbol ()
-  (let ((c (char-after (point))))
-    (and c
-         (memq (char-syntax c) '(?w ?_))
-         (current-word))))
-
 ;; HWL: my attempt at more efficient (current-word)
 
 ;@cindex haskell-doc-is-id-char-at
@@ -1713,7 +1715,7 @@ Return distance in buffer moved, or nil."
 ;@cindex haskell-doc-submit-bug-report
 ; send a bug report
 (defun haskell-doc-submit-bug-report ()
-  "Send email to the maintainer of `haskell-doc'."
+  "Send email to the maintainer of `haskell-doc-mode'."
   (interactive)
   ;; In case we can't find reporter...
   (condition-case err
@@ -1725,7 +1727,7 @@ Return distance in buffer moved, or nil."
 	 (concat "haskell-doc.el " haskell-doc-version)       ; package
 	 haskell-doc-varlist                                  ; varlist
          nil nil                                        ; pre-/post-hooks
-        "I have detected the following strange behaviour/bug in `haskell-doc':\n")))
+        "I have detected the following strange behaviour/bug in `haskell-doc-mode':\n")))
     ;; ...fail gracefully.
     (error
      (beep)
@@ -1737,11 +1739,10 @@ Return distance in buffer moved, or nil."
 ;@cindex haskell-doc-visit-home
 
 (defun haskell-doc-visit-home ()
- "Jump to the main FTP site for `haskell-doc'."
+ "Jump to the main FTP site for `haskell-doc-mode'."
  (interactive)
  (if haskell-doc-xemacs-p
-    (require 'efs)
-  (require 'ange-ftp))
+    (require 'efs))
  (require 'dired)
  (dired-other-window haskell-doc-ftp-site))
 

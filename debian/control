@@ -10,7 +10,7 @@ Package: haskell-mode
 Architecture: all
 Depends: emacs23 | xemacs21 | emacsen, ${misc:Depends}
 Recommends: ghc6 | hugs
-Description: A major mode for editing Haskell in Emacs
+Description: major mode for editing Haskell in Emacs
  A major mode for editing Haskell (the functional
  programming language) in Emacs.
  .

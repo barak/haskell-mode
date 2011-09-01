@@ -2,8 +2,10 @@ haskell-mode (2.8.0-1) unstable; urgency=low
 
   * New upstream release.
   * Bump standards version to 3.9.2 (no changes).
+  * Bug fix: "haskell-mode should recommend ghc, not ghc6", thanks to
+    Anders Kaseorg (Closes: #626872).
 
- -- David Bremner <bremner@debian.org>  Wed, 31 Aug 2011 22:38:59 -0300
+ -- David Bremner <bremner@debian.org>  Wed, 31 Aug 2011 23:05:22 -0300
 
 haskell-mode (2.7.0-2.1) unstable; urgency=low
 

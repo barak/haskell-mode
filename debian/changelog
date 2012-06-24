@@ -4,8 +4,9 @@ haskell-mode (2.8.0-2) unstable; urgency=low
     (Closes: #670357).
   * Bug fix: "interpreter-mode-alist entries", thanks to Kevin Ryde
     (Closes: #670356).
+  * Update Standards-Version to 3.9.3 (no changes).
 
- -- David Bremner <bremner@debian.org>  Sun, 24 Jun 2012 19:21:35 -0300
+ -- David Bremner <bremner@debian.org>  Sun, 24 Jun 2012 19:31:19 -0300
 
 haskell-mode (2.8.0-1) unstable; urgency=low
 

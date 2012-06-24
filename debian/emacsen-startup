@@ -2,7 +2,11 @@
 ;; /etc/emacs/site-start.d/50haskell-mode.el
 ;;
 
-(debian-pkg-add-load-path-item "/usr/share/emacs/site-lisp/haskell-mode")
+(let ((package-dir (concat "/usr/share/"
+                           (symbol-name flavor)
+                           "/site-lisp/haskell-mode")))
+  (debian-pkg-add-load-path-item package-dir))
+
 (load "haskell-site-file")
 
 (setq interpreter-mode-alist

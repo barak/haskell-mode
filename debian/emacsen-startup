@@ -9,11 +9,7 @@
 
 (load "haskell-site-file")
 
-(setq interpreter-mode-alist
-      (append interpreter-mode-alist
-              '(("^#!.*runhugs" . haskell-mode)
-                ("^#!.*runghc" . haskell-mode)
-                ("^#!.*runhaskell" . haskell-mode))))
+(add-to-list 'interpreter-mode-alist '("runhugs" . haskell-mode))
 
 (add-hook 'haskell-mode-hook 'turn-on-font-lock)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)

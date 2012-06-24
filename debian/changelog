@@ -2,8 +2,10 @@ haskell-mode (2.8.0-2) unstable; urgency=low
 
   * Bug fix: "byte compiled .elc files not used", thanks to Kevin Ryde
     (Closes: #670357).
+  * Bug fix: "interpreter-mode-alist entries", thanks to Kevin Ryde
+    (Closes: #670356).
 
- -- David Bremner <bremner@debian.org>  Sun, 24 Jun 2012 19:19:04 -0300
+ -- David Bremner <bremner@debian.org>  Sun, 24 Jun 2012 19:21:35 -0300
 
 haskell-mode (2.8.0-1) unstable; urgency=low
 

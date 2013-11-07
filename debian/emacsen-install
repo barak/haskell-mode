@@ -9,13 +9,15 @@ FLAVOR=$1
 PACKAGE=haskell-mode
 
 case ${FLAVOR} in
-    emacs2[2-9]*)
-	echo install/${PACKAGE}: Handling install for emacsen flavor ${FLAVOR}
+    emacs|emacs21|xemacs21)
+	# emacs21 needs the "syntax" package, see README.md
+	# xemacs21 is documented to be unsupported.
+	# emacs is part of the debian infrastructure and not a target emacs.
+	echo install/${PACKAGE}: Ignoring emacsen flavor ${FLAVOR}
+	exit 0
 	;;
     *)
-	echo install/${PACKAGE}: Ignoring emacsen flavor ${FLAVOR}
-
-	exit 0
+	echo install/${PACKAGE}: Handling install for emacsen flavor ${FLAVOR}
 	;;
 esac
 
@@ -47,6 +49,7 @@ cat << EOF > path.el
 (setq load-path (cons "." load-path) byte-compile-warnings nil)
 EOF
 ${FLAVOR} ${FLAGS} ${FILES}
-rm -f *.el path.el
+# preserve haskell-mode-autoloads.el because it is not byte compiled
+rm -f $(echo *.el | grep -v haskell-mode-autoloads.el) path.el
 
 exit 0

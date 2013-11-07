@@ -4,6 +4,8 @@ Isaac Jones <ijones@debian.org> and Petr Rockai <mornfall@debian.org>.
 
 It was downloaded from 
   http://www-perso.iro.umontreal.ca/~monnier/elisp/
+or more recently:
+  git://github.com/haskell/haskell-mode.git
 
 Upstream Authors:
  -Current Maintainer    Stefan Monnier <monnier@gnu.org>

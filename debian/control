@@ -1,14 +1,19 @@
 Source: haskell-mode
 Section: haskell
 Priority: optional
-Maintainer:  Petr Rockai <mornfall@debian.org>
-Uploaders: Isaac Jones <ijones@debian.org>, David Bremner <bremner@debian.org>
-Build-Depends: debhelper (>= 5), cdbs
-Standards-Version: 3.9.3
+Maintainer: Petr Rockai <mornfall@debian.org>
+Uploaders: Isaac Jones <ijones@debian.org>,
+	   David Bremner <bremner@debian.org>,
+	   Barak A. Pearlmutter <bap@debian.org>
+Build-Depends: debhelper (>= 9), emacs24 | emacs23 | emacs-snapshot
+Standards-Version: 3.9.5
+Homepage: https://github.com/haskell/haskell-mode
+Vcs-Git: git://gitolite.debian.net/haskell-mode.git
+Vcs-Browser: http://gitolite.debian.net/git?p=haskell-mode.git;a=summary
 
 Package: haskell-mode
 Architecture: all
-Depends: emacs23 | xemacs21 | emacsen, ${misc:Depends}
+Depends: emacs24 | emacs23 | emacs-snapshot | emacs, ${misc:Depends}
 Recommends: ghc | hugs
 Description: major mode for editing Haskell in Emacs
  A major mode for editing Haskell (the functional

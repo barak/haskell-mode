@@ -1,4 +1,11 @@
 #!/usr/bin/make -f
 
-include /usr/share/cdbs/1/rules/buildcore.mk
-include /usr/share/cdbs/1/rules/debhelper.mk
+%:
+	dh $@ --parallel
+
+version=$(shell dpkg-parsechangelog | sed -rne 's/^Version: ([0-9.-]+)$$/\1/p')
+
+override_dh_auto_build:
+	dh_auto_build -- VERSION=$(version) GIT_VERSION=0000000 haskell-mode-autoloads.el haskell-mode.info
+
+override_dh_auto_install:

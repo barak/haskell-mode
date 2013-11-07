@@ -1,4 +1,9 @@
+VERSION = $(shell git describe --tags --match 'v[0-9]*' --abbrev=0 | sed 's/_/\./g;s/^v//')
+GIT_VERSION = $(shell git describe --tags --match 'v[0-9]*' --dirty | sed 's/_/\./g;s/^v//')
+
 EMACS = emacs
+EFLAGS =
+BATCH = $(EMACS) $(EFLAGS) --batch -Q -L .
 
 ELFILES = \
 	haskell-c.el \
@@ -20,52 +25,76 @@ ELFILES = \
 	haskell-interactive-mode.el \
 	haskell-package.el \
 	haskell-process.el \
+	haskell-menu.el \
 	haskell-session.el \
 	haskell-string.el \
+	haskell-show.el \
 	ghc-core.el \
 	inf-haskell.el
 
 ELCFILES = $(ELFILES:.el=.elc)
-# AUTOLOADS = $(PACKAGE)-startup.el
 AUTOLOADS = haskell-site-file.el
+DIST_FILES = $(ELFILES) $(ELCFILES) $(AUTOLOADS) haskell-mode-pkg.el.in logo.svg Makefile README.md NEWS
+DIST_FILES_EX = examples/init.el examples/fontlock.hs examples/indent.hs
+DIST_TGZ = haskell-mode-$(GIT_VERSION).tar.gz
+
+PKG_DIST_FILES = $(ELFILES) logo.svg
+PKG_TAR = haskell-mode-$(VERSION).tar
 
 %.elc: %.el
-	$(EMACS) --batch --eval '(setq load-path (cons "." load-path))' \
-		-f batch-byte-compile $<
+	@$(BATCH) -f batch-byte-compile $<
 
-all: $(AUTOLOADS)
+.PHONY: all compile info dist clean
+
+all: compile $(AUTOLOADS)
 
 compile: $(ELCFILES)
 
-info:
-	# No Texinfo file, sorry.
+clean:
+	$(RM) $(ELCFILES) $(AUTOLOADS) $(TGZ)
 
-######################################################################
-###                    don't look below                            ###
-######################################################################
+info: # No Texinfo file, sorry.
 
-PACKAGE=haskell-mode
+# Generate snapshot distribution
+dist: $(DIST_TGZ)
 
-$(AUTOLOADS): $(ELFILES)
+# Generate ELPA-compatible package
+package: $(PKG_TAR)
+elpa: $(PKG_TAR)
+
+$(PKG_TAR): $(PKG_DIST_FILES) haskell-mode-pkg.el.in
+	rm -rf haskell-mode-$(VERSION)
+	mkdir haskell-mode-$(VERSION)
+	cp $(PKG_DIST_FILES) haskell-mode-$(VERSION)/
+	sed -e 's/@VERSION@/$(VERSION)/g' < haskell-mode-pkg.el.in > haskell-mode-$(VERSION)/haskell-mode-pkg.el
+	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode-$(VERSION)/haskell-mode.el #NO_DIST
+	tar cvf $@ haskell-mode-$(VERSION)
+	rm -rf haskell-mode-$(VERSION)
+	@echo
+	@echo "Created ELPA compatible distribution package '$@' from $(GIT_VERSION)"
+
+$(AUTOLOADS): $(ELFILES) haskell-mode.elc
 	[ -f $@ ] || echo '' >$@
-	$(EMACS) --batch --eval '(setq generated-autoload-file "'`pwd`'/$@")' -f batch-update-autoloads "."
+	$(BATCH) --eval '(setq generated-autoload-file "'`pwd`'/$@")' -f batch-update-autoloads "."
 
-##
+# embed version number into .elc file
+haskell-mode.elc: haskell-mode.el
+	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode.tmp.el #NO_DIST
+	@$(BATCH) -f batch-byte-compile haskell-mode.tmp.el #NO_DIST
+	mv haskell-mode.tmp.elc haskell-mode.elc #NO_DIST
+	$(RM) haskell-mode.tmp.el #NO_DIST
 
-VERSION = $(shell darcs show tags | head -n 1)
-TAG = $(shell echo v$(VERSION) | sed 's/\./\\\./g')
-TMP = $(shell echo $(PACKAGE)-$(VERSION))
+$(DIST_TGZ): $(DIST_FILES)
+	rm -rf haskell-mode-$(GIT_VERSION)
+	mkdir haskell-mode-$(GIT_VERSION)
+	cp -p $(DIST_FILES) haskell-mode-$(GIT_VERSION)
+	mkdir haskell-mode-$(GIT_VERSION)/examples
+	cp -p $(DIST_FILES_EX) haskell-mode-$(GIT_VERSION)/examples
 
-dist:
-	darcs get --lazy . $(TMP) &&\
-	cd $(TMP) &&\
-	rm -r _darcs &&\
-	sed -i 's/\$$Name:  \$$/$(TAG)/g' * &&\
-	make $(AUTOLOADS) &&\
-	rm *~ &&\
-	darcs changes > ChangeLog &&\
-	rm Makefile &&\
-	cd .. &&\
-	tar czf $(PACKAGE)-$(VERSION).tar.gz $(PACKAGE)-$(VERSION) &&\
-	rm -rf $(PACKAGE)-$(VERSION) &&\
-	mv $(PACKAGE)-$(VERSION).tar.gz ../haskellmode-emacs-web/
+	printf "1s/=.*/= $(VERSION)/\nw\n" | ed -s haskell-mode-$(GIT_VERSION)/Makefile #NO_DIST
+	printf "2s/=.*/= $(GIT_VERSION)/\nw\n" | ed -s haskell-mode-$(GIT_VERSION)/Makefile #NO_DIST
+	printf "g/NO_DIST/d\nw\n" | ed -s haskell-mode-$(GIT_VERSION)/Makefile #NO_DIST
+	printf ',s/@VERSION@/$(VERSION)/\nw\n' | ed -s haskell-mode-$(GIT_VERSION)/haskell-mode.el #NO_DIST
+
+	tar cvzf $@ haskell-mode-$(GIT_VERSION)
+	rm -rf haskell-mode-$(GIT_VERSION)

@@ -16,16 +16,14 @@
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
-;;
+
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
-;;
+
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; if not, you can either send email to this
-;; program's maintainer or write to: The Free Software Foundation,
-;; Inc.; 59 Temple Place, Suite 330; Boston, MA 02111-1307, USA.
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;  ===========
@@ -1507,6 +1505,7 @@ is not."
 This function is run by an idle timer to print the type
  automatically if `haskell-doc-mode' is turned on."
   (and haskell-doc-mode
+       (not (eobp))
        (not executing-kbd-macro)
        ;; Having this mode operate in the minibuffer makes it impossible to
        ;; see what you're doing.

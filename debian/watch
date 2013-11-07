@@ -1,2 +1,6 @@
-version=2
-http://projects.haskell.org/haskellmode-emacs/ haskell-mode-(.*)\.tar\.gz debian
+version=3
+http://githubredir.debian.net/github/haskell/haskell-mode \
+ /github/haskell/haskell-mode/([0-9]+)_([0-9]+)_([0-9]+)\.tar\.gz
+
+http://githubredir.debian.net/github/haskell/haskell-mode \
+ /github/haskell/haskell-mode/v([0-9.]+)\.tar\.gz

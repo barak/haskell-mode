@@ -1,4 +1,4 @@
-;;; haskell-mode.el --- A Haskell editing mode    -*-coding: iso-8859-1;-*-
+;;; haskell-mode.el --- A Haskell editing mode    -*- coding: utf-8 -*-
 
 ;; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008  Free Software Foundation, Inc
 ;; Copyright (C) 1992, 1997-1998 Simon Marlow, Graeme E Moss, and Tommy Thorn
@@ -28,58 +28,38 @@
 
 ;;; Commentary:
 
-;; Purpose:
+;; A major mode for editing Haskell (the functional programming
+;; language, see URL `http://www.haskell.org') in Emacs.
 ;;
-;; To provide a pleasant mode to browse and edit Haskell files, linking
-;; into the following supported modules:
+;; Some of its major features include:
 ;;
-;; `haskell-font-lock', Graeme E Moss and Tommy Thorn
-;;   Fontifies standard Haskell keywords, symbols, functions, etc.
+;;  - syntax highlighting (font lock),
 ;;
-;; `haskell-decl-scan', Graeme E Moss
-;;   Scans top-level declarations, and places them in a menu.
+;;  - automatic indentation,
 ;;
-;; `haskell-doc', Hans-Wolfgang Loidl
-;;   Echoes types of functions or syntax of keywords when the cursor is idle.
+;;  - on-the-fly documentation,
 ;;
-;; `haskell-indentation', Kristof Bastiaensen
-;;   Intelligent semi-automatic indentation, mark two.
+;;  - interaction with inferior GHCi/Hugs instance,
 ;;
-;; `haskell-indent', Guy Lapalme
-;;   Intelligent semi-automatic indentation.
+;;  - scans declarations and places them in a menu.
 ;;
-;; `haskell-simple-indent', Graeme E Moss and Heribert Schuetz
-;;   Simple indentation.
+;; See URL `https://github.com/haskell/haskell-mode' and/or
+;; Info node `(haskell-mode)Introduction' for more information.
 ;;
-;; `inf-haskell'
-;;   Interaction with an inferior Haskell process.
-;;   It replaces the previous two modules:
-;;     `haskell-hugs', Guy Lapalme
-;;     `haskell-ghci', Chris Web
-;;
-;;
-;; This mode supports full Haskell 1.4 including literate scripts.
-;; In some versions of (X)Emacs it may only support Latin-1, not Unicode.
-;;
-;; This mode is based on an editing mode by Simon Marlow 11/1/92
-;; and heavily modified by Graeme E Moss and Tommy Thorn 7/11/98.
-;;
-;; If you have any problems or suggestions specific to a supported
-;; module, consult that module for a list of known bugs, and an
-;; author to contact via email.  For general problems or suggestions,
-;; consult the list below, then email gem@cs.york.ac.uk and
-;; thorn@irisa.fr quoting the version of the mode you are using, the
-;; version of Emacs you are using, and a small example of the problem
-;; or suggestion.
+;; Use `M-x haskell-mode-view-news` (after Haskell Mode is installed)
+;; to show information on recent changes in Haskell Mode.
 
 ;;; Change Log:
 
+;; This mode is based on an editing mode by Simon Marlow 11/1/92
+;; and heavily modified by Graeme E Moss and Tommy Thorn 7/11/98.
+;;
 ;; Version 1.5:
 ;;   Added autoload for haskell-indentation
 ;;
 ;; Version 1.43:
 ;;   Various tweaks to doc strings and customization support from
-;;   Ville Skytt‰ <scop@xemacs.org>.
+;;   Ville Skytt√§ <scop@xemacs.org>.
 ;;
 ;; Version 1.42:
 ;;   Added autoload for GHCi inferior mode (thanks to Scott
@@ -144,8 +124,24 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
-(eval-when-compile (require 'dabbrev))
+(require 'dabbrev)
+(require 'compile)
+(require 'flymake)
+(require 'outline)
+(require 'haskell-align-imports)
+(require 'haskell-sort-imports)
+(require 'haskell-string)
+(with-no-warnings (require 'cl))
+
+;; FIXME: code-smell: too many forward decls for haskell-session are required here
+(defvar haskell-session)
+(declare-function haskell-process-do-try-info "haskell-process" (sym))
+(declare-function haskell-process-generate-tags "haskell-process" (&optional and-then-find-this-tag))
+(declare-function haskell-session "haskell-session" ())
+(declare-function haskell-session-all-modules "haskell-session" (&optional DONTCREATE))
+(declare-function haskell-session-cabal-dir "haskell-session" (session))
+(declare-function haskell-session-maybe "haskell-session" ())
+(declare-function haskell-session-tags-filename "haskell-session" (session))
 
 ;; All functions/variables start with `(literate-)haskell-'.
 
@@ -154,7 +150,11 @@
   "The release version of `haskell-mode'.")
 
 (defconst haskell-git-version "@GIT_VERSION@"
-  "The Git version of org-mode `haskell-mode'.")
+  "The Git version of `haskell-mode'.")
+
+(defvar haskell-mode-pkg-base-dir (file-name-directory load-file-name)
+  "Package base directory of installed `haskell-mode'.
+Used for locating additional package data files.")
 
 ;;;###autoload
 (defun haskell-version (&optional here)
@@ -173,40 +173,32 @@ When MESSAGE is non-nil, display a message with the version."
         (insert _version)
       (message "%s" _version))))
 
+;;;###autoload
+(defun haskell-mode-view-news ()
+  "Display information on recent changes to haskell-mode."
+  (interactive)
+  (with-current-buffer (find-file-read-only (expand-file-name "NEWS" haskell-mode-pkg-base-dir))
+    (goto-char (point-min))
+    (hide-sublevels 1)
+    (outline-next-visible-heading 1)
+    (show-subtree)))
+
 (defgroup haskell nil
   "Major mode for editing Haskell programs."
+  :link '(custom-manual "(haskell-mode)")
   :group 'languages
   :prefix "haskell-")
 
-;; Set load-path
 ;;;###autoload
-(when load-file-name (add-to-list 'load-path (file-name-directory load-file-name)))
-
-;; Set up autoloads for the modules we supply
-(autoload 'turn-on-haskell-decl-scan "haskell-decl-scan"
-  "Turn on Haskell declaration scanning." t)
-(autoload 'turn-on-haskell-doc-mode "haskell-doc"
-  "Turn on Haskell Doc minor mode." t)
-(autoload 'turn-on-haskell-indentation "haskell-indentation"
-  "Turn on advanced Haskell indentation." t)
-(autoload 'turn-on-haskell-indent "haskell-indent"
-  "Turn on Haskell indentation." t)
-(autoload 'turn-on-haskell-simple-indent "haskell-simple-indent"
-  "Turn on simple Haskell indentation." t)
-
-;; Functionality provided in other files.
-(autoload 'haskell-ds-create-imenu-index "haskell-decl-scan")
-(autoload 'haskell-font-lock-choose-keywords "haskell-font-lock")
-(autoload 'haskell-doc-current-info "haskell-doc")
-(autoload 'haskell-process-generate-tags "haskell-process")
-
-;; Obsolete functions.
-(defun turn-on-haskell-font-lock ()
-  (turn-on-font-lock)
-  (message "turn-on-haskell-font-lock is obsolete.  Use turn-on-font-lock instead."))
-(defun turn-on-haskell-hugs () (message "haskell-hugs is obsolete."))
-(defun turn-on-haskell-ghci () (message "haskell-ghci is obsolete."))
-
+(defun haskell-customize ()
+  "Browse the haskell customize sub-tree.
+This calls 'customize-browse' with haskell as argument and makes
+sure all haskell customize definitions have been loaded."
+  (interactive)
+  ;; make sure all modules with (defcustom ...)s are loaded
+  (mapc 'require
+        '(haskell-checkers haskell-doc haskell-font-lock haskell-indentation haskell-indent haskell-interactive-mode haskell-menu haskell-process haskell-yas inf-haskell))
+  (customize-browse 'haskell))
 
 ;; Are we looking at a literate script?
 (defvar haskell-literate nil
@@ -227,7 +219,7 @@ be set to the preferred literate style."
   :group 'haskell
   :type '(choice (const bird) (const tex) (const nil)))
 
-;; Mode maps.
+;;;###autoload
 (defvar haskell-mode-map
   (let ((map (make-sparse-keymap)))
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -340,14 +332,14 @@ be set to the preferred literate style."
       ;; Non-ASCII syntax should be OK, at least in Emacs.
       (mapc (lambda (x)
               (modify-syntax-entry x "_" table))
-            (concat "°¢£§•¶ß®©™´¨≠ÆØ∞±≤≥¥µ∂∑∏π∫ªºΩæø"
-                    "◊˜"))
+            (concat "¬°¬¢¬£¬§¬•¬¶¬ß¬®¬©¬™¬´¬¨¬≠¬Æ¬Ø¬∞¬±¬≤¬≥¬¥¬µ¬∂¬∑¬∏¬π¬∫¬ª¬º¬Ω¬æ¬ø"
+                    "√ó√∑"))
       (mapc (lambda (x)
               (modify-syntax-entry x "w" table))
-            (concat "¿¡¬√ƒ≈∆«»… ÀÃÕŒœ–—“”‘’÷"
-                    "ÿŸ⁄€‹›ﬁﬂ"
-                    "‡·‚„‰ÂÊÁËÈÍÎÏÌÓÔÒÚÛÙıˆ"
-                    "¯˘˙˚¸˝˛ˇ")))
+            (concat "√Ä√Å√Ç√É√Ñ√Ö√Ü√á√à√â√ä√ã√å√ç√é√è√ê√ë√í√ì√î√ï√ñ"
+                    "√ò√ô√ö√õ√ú√ù√û√ü"
+                    "√†√°√¢√£√§√•√¶√ß√®√©√™√´√¨√≠√Æ√Ø√∞√±√≤√≥√¥√µ√∂"
+                    "√∏√π√∫√ª√º√Ω√æ√ø")))
     table)
   "Syntax table used in Haskell mode.")
 
@@ -402,8 +394,7 @@ May return a qualified name."
 ;; Various mode variables.
 
 (defcustom haskell-mode-hook nil
-  "
-Hook run after entering Haskell mode.
+  "Hook run after entering Haskell mode.
 
 --------------------------------------------------------------------------------
 
@@ -456,7 +447,8 @@ CONFIGURING INDENTATION
                                     ,@(if (fboundp 'capitalized-words-mode)
                                           '(capitalized-words-mode))
                                     turn-on-haskell-simple-indent turn-on-haskell-doc-mode
-                                    turn-on-haskell-decl-scan imenu-add-menubar-index))
+                                    turn-on-haskell-decl-scan imenu-add-menubar-index
+                                    turn-on-haskell-unicode-input-method))
 
 (defvar eldoc-print-current-symbol-info-function)
 
@@ -468,6 +460,10 @@ CONFIGURING INDENTATION
 ;;;###autoload
 (define-derived-mode haskell-mode haskell-parent-mode "Haskell"
   "Major mode for editing Haskell programs.
+
+See also Info node `(haskell-mode)Getting Started' for more
+information about this mode.
+
 Blank lines separate paragraphs, comments start with `-- '.
 \\<haskell-mode-map>
 Literate scripts are supported via `literate-haskell-mode'.
@@ -501,6 +497,7 @@ that `haskell-doc' is irregular in using `turn-(on/off)-haskell-doc-mode'.)
 Use `haskell-version' to find out what version this is.
 
 Invokes `haskell-mode-hook'."
+  :group 'haskell
   (set (make-local-variable 'paragraph-start) (concat "^$\\|" page-delimiter))
   (set (make-local-variable 'paragraph-separate) paragraph-start)
   (set (make-local-variable 'fill-paragraph-function) 'haskell-fill-paragraph)
@@ -697,13 +694,8 @@ See `haskell-check-command' for the default."
 				    (if name
 					(file-name-nondirectory name))))))))
   (setq haskell-saved-check-command command)
-  (require 'compile)
   (save-some-buffers (not compilation-ask-about-save) nil)
-  (if (fboundp 'compilation-start)
-      (compilation-start command)
-    (compile-internal command "No more errors")))
-
-(autoload 'flymake-init-create-temp-buffer-copy "flymake")
+  (compilation-start command))
 
 (defun haskell-flymake-init ()
   "Flymake init function for Haskell.
@@ -714,6 +706,8 @@ To be added to `flymake-init-create-temp-buffer-copy'."
 	  (append (cdr checker-elts)
 		  (list (flymake-init-create-temp-buffer-copy
 			 'flymake-create-temp-inplace))))))
+
+(add-to-list 'flymake-allowed-file-name-masks '("\\.l?hs\\'" haskell-flymake-init))
 
 (defun haskell-mode-suggest-indent-choice ()
   "Ran when the user tries to indent in the buffer but no indentation mode has been selected.
@@ -784,21 +778,17 @@ This function will be called with no arguments.")
 
 (defun haskell-mode-buffer-apply-command (cmd)
   "Execute shell command CMD with current buffer as input and
-  replace the whole buffer with the output. If CMD fails the
-  buffer remains unchanged."
+replace the whole buffer with the output. If CMD fails the buffer
+remains unchanged."
   (set-buffer-modified-p t)
-  (flet
-      ((chomp (str)
-              (while (string-match "\\`\n+\\|^\\s-+\\|\\s-+$\\|\n+\\'"
-                                   str)
-                (setq str (replace-match "" t t str)))
-              str)
-       (errout
-        (fmt &rest args)
-        (let* ((warning-fill-prefix "    "))
-          (display-warning cmd (apply 'format fmt args) :warning))))
-    (let*
-        ((filename (buffer-file-name (current-buffer)))
+  (let* ((chomp (lambda (str)
+                  (while (string-match "\\`\n+\\|^\\s-+\\|\\s-+$\\|\n+\\'" str)
+                    (setq str (replace-match "" t t str)))
+                  str))
+         (errout (lambda (fmt &rest args)
+                   (let* ((warning-fill-prefix "    "))
+                     (display-warning cmd (apply 'format fmt args) :warning))))
+         (filename (buffer-file-name (current-buffer)))
          (cmd-prefix (replace-regexp-in-string " .*" "" cmd))
          (tmp-file (make-temp-file cmd-prefix))
          (err-file (make-temp-file cmd-prefix))
@@ -812,14 +802,14 @@ This function will be called with no arguments.")
          (stderr-output
           (with-temp-buffer
             (insert-file-contents err-file)
-            (chomp (buffer-substring-no-properties (point-min) (point-max)))))
+            (funcall chomp (buffer-substring-no-properties (point-min) (point-max)))))
          (stdout-output
           (with-temp-buffer
             (insert-file-contents tmp-file)
             (buffer-substring-no-properties (point-min) (point-max)))))
       (if (string= "" stderr-output)
           (if (string= "" stdout-output)
-              (errout
+              (funcall errout
                "Error: %s produced no output, leaving buffer alone" cmd)
             (save-restriction
               (widen)
@@ -827,11 +817,11 @@ This function will be called with no arguments.")
               ;; markers.
               (insert-file-contents tmp-file nil nil nil t)))
         ;; non-null stderr, command must have failed
-        (errout "%s failed: %s" cmd stderr-output)
+        (funcall errout "%s failed: %s" cmd stderr-output)
         )
       (delete-file tmp-file)
       (delete-file err-file)
-      )))
+      ))
 
 (defun haskell-mode-stylish-buffer ()
   "Apply stylish-haskell to the current buffer."
@@ -839,7 +829,8 @@ This function will be called with no arguments.")
   (let ((column (current-column))
         (line (line-number-at-pos)))
     (haskell-mode-buffer-apply-command "stylish-haskell")
-    (goto-line line)
+    (goto-char (point-min))
+    (forward-line (1- line))
     (goto-char (+ column (point)))))
 
 (defun haskell-mode-tag-find (&optional next-p)
@@ -888,12 +879,13 @@ This function will be called with no arguments.")
 	  (kill-region (match-beginning 0) (match-end 0))
 	(error "No SCC at point")))))
 
-(eval-after-load "flymake"
-  '(add-to-list 'flymake-allowed-file-name-masks
-		'("\\.l?hs\\'" haskell-flymake-init)))
 
 ;; Provide ourselves:
 
 (provide 'haskell-mode)
+
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
 
 ;;; haskell-mode.el ends here

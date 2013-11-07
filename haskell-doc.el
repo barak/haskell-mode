@@ -1,4 +1,4 @@
-;;; haskell-doc.el --- show function types in echo area  -*- coding: iso-8859-1 -*-
+;;; haskell-doc.el --- show function types in echo area  -*- coding: utf-8 -*-
 
 ;; Copyright (C) 2004, 2005, 2006, 2007, 2009  Free Software Foundation, Inc.
 ;; Copyright (C) 1997 Hans-Wolfgang Loidl
@@ -92,7 +92,7 @@
 ;;   M-x turn-on-haskell-doc-mode
 
 ;; These are the names of the functions that can be called directly by the
-;; user (with keybindings in `haskell-hugs-mode' and `haskell-mode'):
+;; user (with keybindings in `haskell-mode'):
 ;;  `haskell-doc-mode' ... toggle haskell-doc-mode; with prefix turn it on
 ;;                        unconditionally if the prefix is greater 0 otherwise
 ;;                        turn it off
@@ -110,8 +110,7 @@
 ;;  =====
 
 ;;   - Fix byte-compile problems in `haskell-doc-prelude-types' for getArgs etc
-;;   - Write a parser for .hi files and make haskell-doc independent from
-;;     hugs-mode. Read library interfaces via this parser.
+;;   - Write a parser for .hi files. Read library interfaces via this parser.
 ;;   - Indicate kind of object with colours
 ;;   - Handle multi-line types
 ;;   - Encode i-am-fct info in the alist of ids and types.
@@ -267,7 +266,7 @@
 ;;  (haskell-doc-install-keymap): Simplify.
 ;;
 ;;  Revision 1.5  2003/01/09 11:56:26  simonmar
-;;  Patches from Ville Skytt‰ <scop@xemacs.org>, the XEmacs maintainer of
+;;  Patches from Ville Skytt√§ <scop@xemacs.org>, the XEmacs maintainer of
 ;;  the haskell-mode:
 ;;
 ;;   - Make the auto-mode-alist modifications autoload-only.
@@ -285,7 +284,7 @@
 ;;
 ;;  Revision 1.2  2002/04/23 14:45:10  simonmar
 ;;  Tweaks to the doc strings and support for customization, from
-;;  Ville Skytt‰ <scop@xemacs.org>.
+;;  Ville Skytt√§ <scop@xemacs.org>.
 ;;
 ;;  Revision 1.1  2001/07/19 16:17:36  rrt
 ;;  Add the current version of the Moss/Thorn/Marlow Emacs mode, along with its
@@ -352,7 +351,9 @@
 ;;@subsection Emacs portability
 
 (require 'haskell-mode)
-(eval-when-compile (require 'cl))
+(require 'inf-haskell)
+(require 'imenu)
+(with-no-warnings (require 'cl))
 
 (defgroup haskell-doc nil
   "Show Haskell function types in echo area."
@@ -1314,9 +1315,6 @@ URL is the URL of the online doc."
 ;;@node Menubar Support, Haskell Doc Mode, Install as minor mode, top
 ;;@section Menubar Support
 
-;; get imenu
-(require 'imenu)
-
 ;; a dummy definition needed for XEmacs (I know, it's horrible :-(
 
 ;;@cindex haskell-doc-install-keymap
@@ -1418,7 +1416,7 @@ See variable docstring."
 
     (run-hooks 'haskell-doc-mode-hook))
 
-  (and (interactive-p)
+  (and (called-interactively-p 'any)
        (message "haskell-doc-mode is %s"
 		(if haskell-doc-mode "enabled" "disabled")))
   haskell-doc-mode)
@@ -1522,6 +1520,7 @@ This function is run by an idle timer to print the type
        ;;        (or nil ; (haskell-doc-print-var-docstring current-symbol)
        ;;            (haskell-doc-show-type current-fnsym)))))))
 
+;;;###autoload
 (defun haskell-doc-current-info ()
   "Return the info about symbol at point.
 Meant for `eldoc-documentation-function'."
@@ -1558,15 +1557,12 @@ function.  Only the user interface is different."
 
 ;;@cindex haskell-doc-show-type
 
-(require 'syntax-ppss nil t)		; possible add-on in Emacs 21
-
 (defun haskell-doc-in-code-p ()
   (not (or (and (eq haskell-literate 'bird)
                 ;; Copied from haskell-indent-bolp.
                 (<= (current-column) 2)
                 (eq (char-after (line-beginning-position)) ?\>))
-           (if (fboundp 'syntax-ppss)
-               (nth 8 (syntax-ppss))))))
+           (nth 8 (syntax-ppss)))))
 
 ;;;###autoload
 (defun haskell-doc-show-type (&optional sym)
@@ -1816,21 +1812,15 @@ ToDo: Also eliminate leading and trailing whitespace."
 ;;@cindex haskell-doc-get-imenu-info
 (defun haskell-doc-get-imenu-info (obj kind)
   "Return a string describing OBJ of KIND \(Variables, Types, Data\)."
-  (cond ((or (eq major-mode 'haskell-hugs-mode)
-             ;; GEM: Haskell Mode does not work with Haskell Doc
-             ;;      under XEmacs 20.x
-             (and (eq major-mode 'haskell-mode)
-                  (not (and (featurep 'xemacs)
-                            (string-match "^20" emacs-version)))))
-	 (let* ((imenu-info-alist (cdr (assoc kind imenu--index-alist)))
-                ;; (names (mapcar 'car imenu-info-alist))
-                (x (assoc obj imenu-info-alist)))
-	     (if x
-		 (haskell-doc-grab-line x)
-	       nil)))
-	  (t
-           ;; (error "Cannot get local functions in %s mode, sorry" major-mode))) )
-	   nil)))
+  (cond
+   ((eq major-mode 'haskell-mode)
+    (let* ((imenu-info-alist (cdr (assoc kind imenu--index-alist)))
+           ;; (names (mapcar 'car imenu-info-alist))
+           (x (assoc obj imenu-info-alist)))
+      (when x (haskell-doc-grab-line x))))
+
+   (t ;; (error "Cannot get local functions in %s mode, sorry" major-mode)))
+    nil)))
 
 ;;@node Global fct type, Local fct type, Aux, Print fctsym
 ;;@subsection Global fct type
@@ -1988,5 +1978,8 @@ This function switches to and potentially loads many buffers."
 
 (provide 'haskell-doc)
 
-;; arch-tag: 6492eb7e-7048-47ac-a331-da09e1eb6254
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
+
 ;;; haskell-doc.el ends here

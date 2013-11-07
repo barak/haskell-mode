@@ -96,10 +96,9 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'haskell-mode)
-  (require 'cl))
+(require 'haskell-mode)
 (require 'font-lock)
+(with-no-warnings (require 'cl))
 
 (defcustom haskell-font-lock-symbols nil
   "Display \\ and -> and such using symbols in fonts.
@@ -227,9 +226,6 @@ Regexp match data 0 points to the chars."
   ;; Return nil because we're not adding any face property.
   nil)
 
-(unless (fboundp 'char-displayable-p)
-  (require 'latin1-disp nil t))
-
 (defun haskell-font-lock-symbols-keywords ()
   (when (fboundp 'compose-region)
     (let ((alist nil))
@@ -314,7 +310,8 @@ Returns keywords suitable for `font-lock-keywords'."
 
 	 ;; Top-level declarations
 	 (topdecl-var
-	  (concat line-prefix "\\(" varid "\\)\\s-*\\("
+	  (concat line-prefix "\\(" varid "\\)\\s-*\\([
+]*\\s-+\\)*\\("
                   ;; A toplevel declaration can be followed by a definition
                   ;; (=), a type (::) or (∷), a guard, or a pattern which can
                   ;; either be a variable, a constructor, a parenthesized
@@ -331,10 +328,10 @@ Returns keywords suitable for `font-lock-keywords'."
     (setq keywords
 	  `(;; NOTICE the ordering below is significant
 	    ;;
-            ("^<<<<<<< .*$" 0 'font-lock-preprocessor-face t)
-            ("^=======" 0 'font-lock-preprocessor-face t)
-            ("^>>>>>>> .*$" 0 'font-lock-preprocessor-face t)
-	    ("^#.*$" 0 'font-lock-warning-face t)
+            ("^<<<<<<< .*$" 0 'font-lock-warning-face t)
+            ("^=======" 0 'font-lock-warning-face t)
+            ("^>>>>>>> .*$" 0 'font-lock-warning-face t)
+	    ("^#.*$" 0 'font-lock-preprocessor-face t)
 	    ,@(unless haskell-emacs21-features ;Supports nested comments?
 		;; Expensive.
 		`((,string-and-char 1 font-lock-string-face)))
@@ -553,6 +550,7 @@ that should be commented under LaTeX-style literate scripts."
   (haskell-font-lock-keywords-create 'latex)
   "Font lock definitions for LaTeX-style literate Haskell.")
 
+;;;###autoload
 (defun haskell-font-lock-choose-keywords ()
   (let ((literate (if (boundp 'haskell-literate) haskell-literate)))
     (case literate
@@ -648,5 +646,9 @@ Invokes `haskell-font-lock-hook' if not nil."
 
 (provide 'haskell-font-lock)
 
-;; arch-tag: 89fd122e-8378-4c7f-83a3-1f49a64e458d
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; tab-width: 8
+;; End:
+
 ;;; haskell-font-lock.el ends here

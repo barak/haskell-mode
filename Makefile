@@ -1,62 +1,79 @@
-VERSION = $(shell git describe --tags --match 'v[0-9]*' --abbrev=0 | sed 's/_/\./g;s/^v//')
-GIT_VERSION = $(shell git describe --tags --match 'v[0-9]*' --dirty | sed 's/_/\./g;s/^v//')
+VERSION = $(shell git describe --tags --match 'v[0-9]*' --abbrev=0 | sed 's/^v//;s/\.0*/./g')
+GIT_VERSION = $(shell git describe --tags --match 'v[0-9]*' --long --dirty | sed 's/^v//')
 
+INSTALL_INFO = install-info
 EMACS = emacs
 EFLAGS =
 BATCH = $(EMACS) $(EFLAGS) --batch -Q -L .
 
 ELFILES = \
+	ghc-core.el \
+	haskell-align-imports.el \
 	haskell-c.el \
 	haskell-cabal.el \
+	haskell-checkers.el \
+	haskell-compat.el \
 	haskell-decl-scan.el \
 	haskell-doc.el \
 	haskell-font-lock.el \
-	haskell-ghci.el \
-	haskell-hugs.el \
 	haskell-indent.el \
 	haskell-indentation.el \
-	haskell-checkers.el \
+	haskell-interactive-mode.el \
+	haskell-menu.el \
 	haskell-mode.el \
-	haskell-simple-indent.el \
-	haskell-sort-imports.el \
-	haskell-align-imports.el \
 	haskell-move-nested.el \
 	haskell-navigate-imports.el \
-	haskell-interactive-mode.el \
 	haskell-package.el \
 	haskell-process.el \
-	haskell-menu.el \
 	haskell-session.el \
-	haskell-string.el \
 	haskell-show.el \
-	ghc-core.el \
+	haskell-simple-indent.el \
+	haskell-sort-imports.el \
+	haskell-string.el \
+	haskell-unicode-input-method.el \
+	haskell-yas.el \
 	inf-haskell.el
 
 ELCFILES = $(ELFILES:.el=.elc)
-AUTOLOADS = haskell-site-file.el
-DIST_FILES = $(ELFILES) $(ELCFILES) $(AUTOLOADS) haskell-mode-pkg.el.in logo.svg Makefile README.md NEWS
-DIST_FILES_EX = examples/init.el examples/fontlock.hs examples/indent.hs
-DIST_TGZ = haskell-mode-$(GIT_VERSION).tar.gz
+AUTOLOADS = haskell-mode-autoloads.el
 
-PKG_DIST_FILES = $(ELFILES) logo.svg
+PKG_DIST_FILES = $(ELFILES) logo.svg NEWS haskell-mode.info dir
 PKG_TAR = haskell-mode-$(VERSION).tar
+ELCHECKS=$(addprefix check-, $(ELFILES:.el=))
 
 %.elc: %.el
-	@$(BATCH) -f batch-byte-compile $<
+	@$(BATCH) \
+	   --eval "(byte-compile-disable-warning 'cl-functions)" \
+       -f batch-byte-compile $<
 
-.PHONY: all compile info dist clean
+.PHONY: all compile info clean check $(ELCHECKS) elpa package
 
-all: compile $(AUTOLOADS)
+all: compile $(AUTOLOADS) info
 
 compile: $(ELCFILES)
 
+$(ELCHECKS): check-%: %.el
+	@$(BATCH) --eval '(when (check-declare-file "$*.el") (error "check-declare failed"))'
+	@$(BATCH) \
+	     --eval "(setq byte-compile-error-on-warn t)" \
+	 	 --eval "(byte-compile-disable-warning 'cl-functions)" \
+		 -f batch-byte-compile $*.el
+	@$(RM) $*.elc
+	@echo "--"
+
+check: $(ELCHECKS)
+	@echo "checks passed!"
+
 clean:
-	$(RM) $(ELCFILES) $(AUTOLOADS) $(TGZ)
+	$(RM) $(ELCFILES) $(AUTOLOADS) $(AUTOLOADS:.el=.elc) $(PKG_TAR) haskell-mode.info dir
 
-info: # No Texinfo file, sorry.
+info: haskell-mode.info dir
 
-# Generate snapshot distribution
-dist: $(DIST_TGZ)
+dir: haskell-mode.info
+	$(INSTALL_INFO) --dir=$@ $<
+
+# haskell-mode.info: haskell-mode.texi
+# 	$(MAKEINFO) -o $@ $<
 
 # Generate ELPA-compatible package
 package: $(PKG_TAR)
@@ -67,34 +84,22 @@ $(PKG_TAR): $(PKG_DIST_FILES) haskell-mode-pkg.el.in
 	mkdir haskell-mode-$(VERSION)
 	cp $(PKG_DIST_FILES) haskell-mode-$(VERSION)/
 	sed -e 's/@VERSION@/$(VERSION)/g' < haskell-mode-pkg.el.in > haskell-mode-$(VERSION)/haskell-mode-pkg.el
-	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode-$(VERSION)/haskell-mode.el #NO_DIST
+	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode-$(VERSION)/haskell-mode.el
+	(sed -n -e '/^;;; Commentary/,/^;;;/p' | egrep '^;;( |$$)' | cut -c4-) < haskell-mode.el > haskell-mode-$(VERSION)/README
 	tar cvf $@ haskell-mode-$(VERSION)
 	rm -rf haskell-mode-$(VERSION)
 	@echo
 	@echo "Created ELPA compatible distribution package '$@' from $(GIT_VERSION)"
 
 $(AUTOLOADS): $(ELFILES) haskell-mode.elc
-	[ -f $@ ] || echo '' >$@
-	$(BATCH) --eval '(setq generated-autoload-file "'`pwd`'/$@")' -f batch-update-autoloads "."
+	$(BATCH) \
+		--eval '(setq make-backup-files nil)' \
+		--eval '(setq generated-autoload-file "$(CURDIR)/$@")' \
+		-f batch-update-autoloads "."
 
-# embed version number into .elc file
+# HACK: embed version number into .elc file
 haskell-mode.elc: haskell-mode.el
-	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode.tmp.el #NO_DIST
-	@$(BATCH) -f batch-byte-compile haskell-mode.tmp.el #NO_DIST
-	mv haskell-mode.tmp.elc haskell-mode.elc #NO_DIST
-	$(RM) haskell-mode.tmp.el #NO_DIST
-
-$(DIST_TGZ): $(DIST_FILES)
-	rm -rf haskell-mode-$(GIT_VERSION)
-	mkdir haskell-mode-$(GIT_VERSION)
-	cp -p $(DIST_FILES) haskell-mode-$(GIT_VERSION)
-	mkdir haskell-mode-$(GIT_VERSION)/examples
-	cp -p $(DIST_FILES_EX) haskell-mode-$(GIT_VERSION)/examples
-
-	printf "1s/=.*/= $(VERSION)/\nw\n" | ed -s haskell-mode-$(GIT_VERSION)/Makefile #NO_DIST
-	printf "2s/=.*/= $(GIT_VERSION)/\nw\n" | ed -s haskell-mode-$(GIT_VERSION)/Makefile #NO_DIST
-	printf "g/NO_DIST/d\nw\n" | ed -s haskell-mode-$(GIT_VERSION)/Makefile #NO_DIST
-	printf ',s/@VERSION@/$(VERSION)/\nw\n' | ed -s haskell-mode-$(GIT_VERSION)/haskell-mode.el #NO_DIST
-
-	tar cvzf $@ haskell-mode-$(GIT_VERSION)
-	rm -rf haskell-mode-$(GIT_VERSION)
+	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode.tmp.el
+	@$(BATCH) --eval "(byte-compile-disable-warning 'cl-functions)" -f batch-byte-compile haskell-mode.tmp.el
+	mv haskell-mode.tmp.elc haskell-mode.elc
+	$(RM) haskell-mode.tmp.el

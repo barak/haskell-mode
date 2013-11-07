@@ -88,12 +88,15 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))	;need defs of push and pop
+(require 'haskell-string)
+(with-no-warnings (require 'cl))
+
 (defvar haskell-literate)
 
 (defgroup haskell-indent nil
   "Haskell indentation."
   :group 'haskell
+  :link '(custom-manual "(haskell-mode)Indentation")
   :prefix "haskell-indent-")
 
 (defcustom haskell-indent-offset 4
@@ -1501,6 +1504,7 @@ One indentation cycle is used."
     (define-key map [?\C-c ?\C->] 'haskell-indent-put-region-in-literate)
     map))
 
+;;;###autoload
 (defun turn-on-haskell-indent ()
   "Turn on ``intelligent'' Haskell indentation mode."
   (set (make-local-variable 'indent-line-function) 'haskell-indent-cycle)
@@ -1577,5 +1581,8 @@ Invokes `haskell-indent-hook' if not nil."
 
 (provide 'haskell-indent)
 
-;; arch-tag: e4e5e90a-12e2-4002-b5cb-7b2375710013
+;; Local Variables:
+;; byte-compile-warnings: (not cl-functions)
+;; End:
+
 ;;; haskell-indent.el ends here

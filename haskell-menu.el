@@ -25,13 +25,14 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'haskell-compat)
 (require 'haskell-session)
+(require 'haskell-process)
+(with-no-warnings (require 'cl))
 
-(defcustom haskell-menu-buffer-name
-  "*haskell-menu*"
-  "The path for starting cabal-dev."
-  :group 'haskell
+(defcustom haskell-menu-buffer-name "*haskell-menu*"
+  "The name of the Haskell session menu buffer"
+  :group 'haskell-interactive
   :type 'string)
 
 ;;;###autoload
@@ -126,7 +127,11 @@ Letters do not insert themselves; instead, they are commands."
     (suppress-keymap map t)
     menu-map))
 
+
+(provide 'haskell-menu)
+
 ;; Local Variables:
 ;; byte-compile-warnings: (not cl-functions)
 ;; End:
+
 ;;; haskell-menu.el ends here

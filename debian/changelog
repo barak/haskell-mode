@@ -1,3 +1,11 @@
+haskell-mode (13.07-1) unstable; urgency=low
+
+  * New upstream release (closes: #728957)
+  * Expose development git repo (closes: #587903)
+  * Try not to accidentally reject supported emacsen (closes: #667451)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Nov 2013 15:50:08 +0000
+
 haskell-mode (2.8.0-2) unstable; urgency=low
 
   * Bug fix: "byte compiled .elc files not used", thanks to Kevin Ryde

@@ -5,6 +5,8 @@
 # from the install scripts for gettext by Santiago Vila
 # <sanvila@ctv.es> and octave by Dirk Eddelbuettel <edd@debian.org>.
 
+set -e
+
 FLAVOR=$1
 PACKAGE=haskell-mode
 
@@ -41,15 +43,18 @@ fi
 
 install -m 755 -d ${ELCDIR}
 cd ${ELDIR}
-FILES=`echo *.el`
-cp ${FILES} ${ELCDIR}
+FILES=$(echo *.el)
 cd ${ELCDIR}
+for i in ${FILES}; do
+    ln -sf ${ELDIR}/$i $i
+done
 
+FILES_SANS_AUTOLOAD=$(for i in ${FILES}; do if [ $i != haskell-mode-autoloads.el ]; then echo $i; fi; done)
 cat << EOF > path.el
 (setq load-path (cons "." load-path) byte-compile-warnings nil)
 EOF
-${FLAVOR} ${FLAGS} ${FILES}
+${FLAVOR} ${FLAGS} ${FILES_SANS_AUTOLOAD}
 # preserve haskell-mode-autoloads.el because it is not byte compiled
-rm -f $(echo *.el | grep -v haskell-mode-autoloads.el) path.el
+rm path.el ${FILES_SANS_AUTOLOAD} || true
 
 exit 0

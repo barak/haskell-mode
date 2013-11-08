@@ -3,8 +3,27 @@ haskell-mode (13.07-1) unstable; urgency=low
   * New upstream release (closes: #728957)
   * Expose development git repo (closes: #587903)
   * Try not to accidentally reject supported emacsen (closes: #667451)
+  * dh9, stop using cdbs
+  * bump policy
+  * add current homepage
+  * add self as uploader
+  * update emacsen installation/startup
+  * rm debian/debuild.opts (which supported building in a darcs repo)
+  * generate/install info page.
+  * update debian/copyright with current license and upstream repo
+  * build dependency on emacs, needed to generate autoload file
+  * preserve link to uncompiled autoloads file in emacsen flavour elc directory
+  * point debian/watch at current upstream
+  * add collab-maint packaging repo
+  * substitute @VERSION@ and @GIT_VERSION@ in installed .el files
+  * install upstream changelog, readme, examples
+  * source format 3.0 (quilt)
+  * install haskell logo, in debian-appropriate location
+  * leave .el files linked into flavour dir to enable help, (closes: #679044)
+  * installation no longer emits ELisp values (closes: #683629)
+  * fill-paragraph breaks multi-line comments differently (closes: #575081)
 
- -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Nov 2013 15:50:08 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 08 Nov 2013 12:22:41 +0000
 
 haskell-mode (2.8.0-2) unstable; urgency=low
 

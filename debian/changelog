@@ -1,3 +1,10 @@
+haskell-mode (13.10-2) unstable; urgency=medium
+
+  * build dependency on texinfo for /usr/bin/makeinfo (closes: #730955)
+  * no haskell-ghci.el breaking agda-mode (<< 2.3.2) (closes: #731326)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 27 Dec 2013 17:38:40 +0100
+
 haskell-mode (13.10-1) unstable; urgency=low
 
   * New upstream release

@@ -1,3 +1,9 @@
+haskell-mode (13.10-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 27 Dec 2013 16:00:34 +0100
+
 haskell-mode (13.07-1) unstable; urgency=low
 
   * New upstream release (closes: #728957)

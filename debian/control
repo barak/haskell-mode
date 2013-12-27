@@ -5,7 +5,9 @@ Maintainer: Petr Rockai <mornfall@debian.org>
 Uploaders: Isaac Jones <ijones@debian.org>,
 	   David Bremner <bremner@debian.org>,
 	   Barak A. Pearlmutter <bap@debian.org>
-Build-Depends: debhelper (>= 9), emacs24 | emacs23 | emacs-snapshot
+Build-Depends: debhelper (>= 9),
+	emacs24 | emacs23 | emacs-snapshot,
+	texinfo
 Standards-Version: 3.9.5
 Homepage: https://github.com/haskell/haskell-mode
 Vcs-Git: git://anonscm.debian.org/collab-maint/haskell-mode.git

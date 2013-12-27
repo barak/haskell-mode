@@ -1,5 +1,5 @@
 ;;; haskell-compat.el --- legacy/compatibility backports for haskell-mode
-;; 
+;;
 ;; Filename: haskell-compat.el
 ;; Description: legacy/compatibility backports for haskell-mode
 
@@ -17,6 +17,8 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
 
 ;;; Code:
 

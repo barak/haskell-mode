@@ -1,9 +1,9 @@
 ;;; haskell-mode.el --- A Haskell editing mode    -*- coding: utf-8 -*-
 
 ;; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008  Free Software Foundation, Inc
-;; Copyright (C) 1992, 1997-1998 Simon Marlow, Graeme E Moss, and Tommy Thorn
+;; Copyright (C) 1992, 1997-1998  Simon Marlow, Graeme E Moss, and Tommy Thorn
 
-;; Authors: 1992      Simon Marlow
+;; Author:  1992      Simon Marlow
 ;;          1997-1998 Graeme E Moss <gem@cs.york.ac.uk> and
 ;;                    Tommy Thorn <thorn@irisa.fr>,
 ;;          2001-2002 Reuben Thomas (>=v1.4)
@@ -142,6 +142,7 @@
 (declare-function haskell-session-cabal-dir "haskell-session" (session))
 (declare-function haskell-session-maybe "haskell-session" ())
 (declare-function haskell-session-tags-filename "haskell-session" (session))
+(declare-function haskell-session-current-dir "haskell-session" (session))
 
 ;; All functions/variables start with `(literate-)haskell-'.
 
@@ -166,9 +167,9 @@ When MESSAGE is non-nil, display a message with the version."
   (let* ((haskell-mode-dir (ignore-errors
                              (file-name-directory (or (locate-library "haskell-mode") ""))))
          (_version (format "haskell-mode version %s (%s @ %s)"
-                            haskell-version
-                            haskell-git-version
-                            haskell-mode-dir)))
+                           haskell-version
+                           haskell-git-version
+                           haskell-mode-dir)))
     (if here
         (insert _version)
       (message "%s" _version))))
@@ -197,7 +198,7 @@ sure all haskell customize definitions have been loaded."
   (interactive)
   ;; make sure all modules with (defcustom ...)s are loaded
   (mapc 'require
-        '(haskell-checkers haskell-doc haskell-font-lock haskell-indentation haskell-indent haskell-interactive-mode haskell-menu haskell-process haskell-yas inf-haskell))
+        '(haskell-checkers haskell-compile haskell-doc haskell-font-lock haskell-indentation haskell-indent haskell-interactive-mode haskell-menu haskell-process haskell-yas inf-haskell))
   (customize-browse 'haskell))
 
 ;; Are we looking at a literate script?
@@ -248,7 +249,6 @@ be set to the preferred literate style."
     ;; Editing-specific commands
     (define-key map (kbd "C-c C-.") 'haskell-mode-format-imports)
     (define-key map [remap delete-indentation] 'haskell-delete-indentation)
-    (define-key map [backtab] 'unindent-for-tab-command)
 
     map)
   "Keymap used in Haskell mode.")
@@ -290,36 +290,36 @@ be set to the preferred literate style."
     (modify-syntax-entry ?\]  ")[" table)
 
     (cond ((featurep 'xemacs)
-	   ;; I don't know whether this is equivalent to the below
-	   ;; (modulo nesting).  -- fx
-	   (modify-syntax-entry ?{  "(}5" table)
-	   (modify-syntax-entry ?}  "){8" table)
-	   (modify-syntax-entry ?-  "_ 1267" table))
-	  (t
-	   ;; In Emacs 21, the `n' indicates that they nest.
-	   ;; The `b' annotation is actually ignored because it's only
-	   ;; meaningful on the second char of a comment-starter, so
-	   ;; on Emacs 20 and before we get wrong results.  --Stef
-	   (modify-syntax-entry ?\{  "(}1nb" table)
-	   (modify-syntax-entry ?\}  "){4nb" table)
-	   (modify-syntax-entry ?-  "_ 123" table)))
+           ;; I don't know whether this is equivalent to the below
+           ;; (modulo nesting).  -- fx
+           (modify-syntax-entry ?{  "(}5" table)
+           (modify-syntax-entry ?}  "){8" table)
+           (modify-syntax-entry ?-  "_ 1267" table))
+          (t
+           ;; In Emacs 21, the `n' indicates that they nest.
+           ;; The `b' annotation is actually ignored because it's only
+           ;; meaningful on the second char of a comment-starter, so
+           ;; on Emacs 20 and before we get wrong results.  --Stef
+           (modify-syntax-entry ?\{  "(}1nb" table)
+           (modify-syntax-entry ?\}  "){4nb" table)
+           (modify-syntax-entry ?-  "_ 123" table)))
     (modify-syntax-entry ?\n ">" table)
 
     (let (i lim)
       (map-char-table
        (lambda (k v)
-	 (when (equal v '(1))
-	   ;; The current Emacs 22 codebase can pass either a char
-	   ;; or a char range.
-	   (if (consp k)
-	       (setq i (car k)
-		     lim (cdr k))
-	     (setq i k
-		   lim k))
-	   (while (<= i lim)
-	     (when (> i 127)
-	       (modify-syntax-entry i "_" table))
-	     (setq i (1+ i)))))
+         (when (equal v '(1))
+           ;; The current Emacs 22 codebase can pass either a char
+           ;; or a char range.
+           (if (consp k)
+               (setq i (car k)
+                     lim (cdr k))
+             (setq i k
+                   lim k))
+           (while (<= i lim)
+             (when (> i 127)
+               (modify-syntax-entry i "_" table))
+             (setq i (1+ i)))))
        (standard-syntax-table)))
 
     (modify-syntax-entry ?\` "$`" table)
@@ -394,84 +394,9 @@ May return a qualified name."
 ;; Various mode variables.
 
 (defcustom haskell-mode-hook nil
-  "Hook run after entering Haskell mode.
+  "Hook run after entering `haskell-mode'.
 
---------------------------------------------------------------------------------
-
-CONFIGURING INDENTATION
-
-  Using this you can configure the Haskell indentation mode. There
-  are three major Haskell indentation modes:
-
-  `haskell-indentation', Kristof Bastiaensen
-    Intelligent semi-automatic indentation, mark two. How to enable:
-    (custom-set-variables
-     '(haskell-mode-hook '(turn-on-haskell-indentation)))
-
-  `haskell-indent', Guy Lapalme
-    Intelligent semi-automatic indentation. How to enable:
-    (custom-set-variables
-     '(haskell-mode-hook '(turn-on-haskell-indentation)))
-
-  `haskell-simple-indent', Graeme E Moss and Heribert Schuetz
-    Simple indentation. How to enable:
-    (custom-set-variables
-     '(haskell-mode-hook '(turn-on-haskell-simple-indent)))
-
-  You can either:
-
-   1) Use the code above if you're more Elisp savvy, and put it
-      in your .emacs or similar file (type C-M-x to run each
-      one), or
-
-   2) customize the variable by ``M-x customize-group'' (see the
-      link below), or
-
-   3) some people prefer to add custom hooks like the below:
-
-      (add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
-
-  In order to test each one after enabling you can re-run M-x
-  haskell-mode in the same buffer.
-
-  Do not select more than one of the three indentation modes.
-
---------------------------------------------------------------------------------"
-  :type 'hook
-  :group 'haskell
-  :options `(turn-on-haskell-indent turn-on-haskell-indentation
-                                    turn-on-font-lock
-                                    ,(if (boundp 'eldoc-documentation-function)
-                                         'turn-on-eldoc-mode
-                                       'turn-on-haskell-doc-mode) ; Emacs 21
-                                    ,@(if (fboundp 'capitalized-words-mode)
-                                          '(capitalized-words-mode))
-                                    turn-on-haskell-simple-indent turn-on-haskell-doc-mode
-                                    turn-on-haskell-decl-scan imenu-add-menubar-index
-                                    turn-on-haskell-unicode-input-method))
-
-(defvar eldoc-print-current-symbol-info-function)
-
-;; For compatibility with Emacs < 24, derive conditionally
-(defalias 'haskell-parent-mode
-  (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
-
-;; The main mode functions
-;;;###autoload
-(define-derived-mode haskell-mode haskell-parent-mode "Haskell"
-  "Major mode for editing Haskell programs.
-
-See also Info node `(haskell-mode)Getting Started' for more
-information about this mode.
-
-Blank lines separate paragraphs, comments start with `-- '.
-\\<haskell-mode-map>
-Literate scripts are supported via `literate-haskell-mode'.
-The variable `haskell-literate' indicates the style of the script in the
-current buffer.  See the documentation on this variable for more details.
-
-Modules can hook in via `haskell-mode-hook'.  The following modules
-are supported with an `autoload' command:
+Some of the supported modules that can be activated via this hook:
 
    `haskell-decl-scan', Graeme E Moss
      Scans top-level declarations, and places them in a menu.
@@ -489,14 +414,53 @@ are supported with an `autoload' command:
      Simple indentation.
 
 Module X is activated using the command `turn-on-X'.  For example,
-`haskell-indent' is activated using `turn-on-haskell-indent'.
-For more information on a module, see the help for its `X-mode'
-function.  Some modules can be deactivated using `turn-off-X'.  (Note
-that `haskell-doc' is irregular in using `turn-(on/off)-haskell-doc-mode'.)
+`haskell-doc' is activated using `turn-on-haskell-doc'.
+For more information on a specific module, see the help for its `X-mode'
+function.  Some modules can be deactivated using `turn-off-X'.
 
-Use `haskell-version' to find out what version this is.
+See Info node `(haskell-mode)haskell-mode-hook' for more details.
 
-Invokes `haskell-mode-hook'."
+Warning: do not enable more than one of the three indentation
+modes. See Info node `(haskell-mode)indentation' for more
+details."
+  :type 'hook
+  :group 'haskell
+  :link '(info-link "(haskell-mode)haskell-mode-hook")
+  :link '(function-link haskell-mode)
+  :options `(capitalized-words-mode
+             imenu-add-menubar-index
+             turn-on-eldoc-mode
+             turn-on-haskell-decl-scan
+             turn-on-haskell-doc
+             turn-on-haskell-indent
+             turn-on-haskell-indentation
+             turn-on-haskell-simple-indent
+             turn-on-haskell-unicode-input-method))
+
+(defvar eldoc-print-current-symbol-info-function)
+
+;; For compatibility with Emacs < 24, derive conditionally
+(defalias 'haskell-parent-mode
+  (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
+
+;; The main mode functions
+;;;###autoload
+(define-derived-mode haskell-mode haskell-parent-mode "Haskell"
+  "Major mode for editing Haskell programs.
+
+See also Info node `(haskell-mode)Getting Started' for more
+information about this mode.
+
+\\<haskell-mode-map>
+Literate scripts are supported via `literate-haskell-mode'.
+The variable `haskell-literate' indicates the style of the script in the
+current buffer.  See the documentation on this variable for more details.
+
+Use `haskell-version' to find out what version of Haskell mode you are
+currently using.
+
+Additional Haskell mode modules can be hooked in via `haskell-mode-hook';
+see documentation for that variable for more details."
   :group 'haskell
   (set (make-local-variable 'paragraph-start) (concat "^$\\|" page-delimiter))
   (set (make-local-variable 'paragraph-separate) paragraph-start)
@@ -519,13 +483,13 @@ Invokes `haskell-mode-hook'."
   ;; Set things up for font-lock.
   (set (make-local-variable 'font-lock-defaults)
        '(haskell-font-lock-choose-keywords
-	 nil nil ((?\' . "w") (?_  . "w")) nil
-	 (font-lock-syntactic-keywords
-	  . haskell-font-lock-choose-syntactic-keywords)
-	 (font-lock-syntactic-face-function
-	  . haskell-syntactic-face-function)
-	 ;; Get help from font-lock-syntactic-keywords.
-	 (parse-sexp-lookup-properties . t)))
+         nil nil ((?\' . "w") (?_  . "w")) nil
+         (font-lock-syntactic-keywords
+          . haskell-font-lock-choose-syntactic-keywords)
+         (font-lock-syntactic-face-function
+          . haskell-syntactic-face-function)
+         ;; Get help from font-lock-syntactic-keywords.
+         (parse-sexp-lookup-properties . t)))
   ;; Haskell's layout rules mean that TABs have to be handled with extra care.
   ;; The safer option is to avoid TABs.  The second best is to make sure
   ;; TABs stops are 8 chars apart, as mandated by the Haskell Report.  --Stef
@@ -633,15 +597,15 @@ If nil, use the Hoogle web-site."
                         nil nil def))))
   (if (null haskell-hoogle-command)
       (browse-url (format "http://haskell.org/hoogle/?q=%s" query))
-    (lexical-let ((temp-buffer (if (fboundp 'help-buffer) (help-buffer) "*Help*")))
+    (lexical-let ((temp-buffer (help-buffer)))
       (with-output-to-temp-buffer temp-buffer
-	(with-current-buffer standard-output
-	  (let ((hoogle-process
-		 (start-process "hoogle" (current-buffer) haskell-hoogle-command query))
-		(scroll-to-top
-		 (lambda (process event)
-		   (set-window-start (get-buffer-window temp-buffer t) 1))))
-	    (set-process-sentinel hoogle-process scroll-to-top)))))))
+        (with-current-buffer standard-output
+          (let ((hoogle-process
+                 (start-process "hoogle" (current-buffer) haskell-hoogle-command query))
+                (scroll-to-top
+                 (lambda (process event)
+                   (set-window-start (get-buffer-window temp-buffer t) 1))))
+            (set-process-sentinel hoogle-process scroll-to-top)))))))
 
 ;;;###autoload
 (defalias 'hoogle 'haskell-hoogle)
@@ -665,8 +629,8 @@ If nil, use the Hoogle web-site."
   "*Command used to check a Haskell file."
   :group 'haskell
   :type '(choice (const "hlint")
-		 (const "ghc -fno-code")
-		 (string :tag "Other command")))
+                 (const "ghc -fno-code")
+                 (string :tag "Other command")))
 
 (defcustom haskell-stylish-on-save nil
   "Whether to run stylish-haskell on the buffer before saving."
@@ -688,11 +652,11 @@ Runs COMMAND, a shell command, as if by `compile'.
 See `haskell-check-command' for the default."
   (interactive
    (list (read-string "Checker command: "
-		      (or haskell-saved-check-command
-			  (concat haskell-check-command " "
-				  (let ((name (buffer-file-name)))
-				    (if name
-					(file-name-nondirectory name))))))))
+                      (or haskell-saved-check-command
+                          (concat haskell-check-command " "
+                                  (let ((name (buffer-file-name)))
+                                    (if name
+                                        (file-name-nondirectory name))))))))
   (setq haskell-saved-check-command command)
   (save-some-buffers (not compilation-ask-about-save) nil)
   (compilation-start command))
@@ -701,11 +665,11 @@ See `haskell-check-command' for the default."
   "Flymake init function for Haskell.
 To be added to `flymake-init-create-temp-buffer-copy'."
   (let ((checker-elts (and haskell-saved-check-command
-			   (split-string haskell-saved-check-command))))
+                           (split-string haskell-saved-check-command))))
     (list (car checker-elts)
-	  (append (cdr checker-elts)
-		  (list (flymake-init-create-temp-buffer-copy
-			 'flymake-create-temp-inplace))))))
+          (append (cdr checker-elts)
+                  (list (flymake-init-create-temp-buffer-copy
+                         'flymake-create-temp-inplace))))))
 
 (add-to-list 'flymake-allowed-file-name-masks '("\\.l?hs\\'" haskell-flymake-init))
 
@@ -713,16 +677,6 @@ To be added to `flymake-init-create-temp-buffer-copy'."
   "Ran when the user tries to indent in the buffer but no indentation mode has been selected.
 Brings up the documentation for haskell-mode-hook."
   (describe-variable 'haskell-mode-hook))
-
-(defvar unindent-line-function nil
-  "Function to unindent the current line.
-This function will be called with no arguments.")
-
-(defun unindent-for-tab-command ()
-  "Un-indent the current line according to the mode's unindenting function (if any)."
-  (interactive)
-  (when unindent-line-function
-    (funcall unindent-line-function)))
 
 (defun haskell-mode-format-imports ()
   "Format the imports by aligning and sorting them."
@@ -807,21 +761,21 @@ remains unchanged."
           (with-temp-buffer
             (insert-file-contents tmp-file)
             (buffer-substring-no-properties (point-min) (point-max)))))
-      (if (string= "" stderr-output)
-          (if (string= "" stdout-output)
-              (funcall errout
-               "Error: %s produced no output, leaving buffer alone" cmd)
-            (save-restriction
-              (widen)
-              ;; command successful, insert file with replacement to preserve
-              ;; markers.
-              (insert-file-contents tmp-file nil nil nil t)))
-        ;; non-null stderr, command must have failed
-        (funcall errout "%s failed: %s" cmd stderr-output)
-        )
-      (delete-file tmp-file)
-      (delete-file err-file)
-      ))
+    (if (string= "" stderr-output)
+        (if (string= "" stdout-output)
+            (funcall errout
+                     "Error: %s produced no output, leaving buffer alone" cmd)
+          (save-restriction
+            (widen)
+            ;; command successful, insert file with replacement to preserve
+            ;; markers.
+            (insert-file-contents tmp-file nil nil nil t)))
+      ;; non-null stderr, command must have failed
+      (funcall errout "%s failed: %s" cmd stderr-output)
+      )
+    (delete-file tmp-file)
+    (delete-file err-file)
+    ))
 
 (defun haskell-mode-stylish-buffer ()
   "Apply stylish-haskell to the current buffer."
@@ -850,18 +804,18 @@ remains unchanged."
   "Insert an SCC annotation at point."
   (interactive)
   (if (or (looking-at "\\b\\|[ \t]\\|$") (and (not (bolp))
-					  (save-excursion
-					    (forward-char -1)
-					    (looking-at "\\b\\|[ \t]"))))
+                                              (save-excursion
+                                                (forward-char -1)
+                                                (looking-at "\\b\\|[ \t]"))))
       (let ((space-at-point (looking-at "[ \t]")))
-	(unless (and (not (bolp)) (save-excursion
-				    (forward-char -1)
-				    (looking-at "[ \t]")))
-	  (insert " "))
-	(insert "{-# SCC \"\" #-}")
-	(unless space-at-point
-	  (insert " "))
-	(forward-char (if space-at-point -5 -6)))
+        (unless (and (not (bolp)) (save-excursion
+                                    (forward-char -1)
+                                    (looking-at "[ \t]")))
+          (insert " "))
+        (insert "{-# SCC \"\" #-}")
+        (unless space-at-point
+          (insert " "))
+        (forward-char (if space-at-point -5 -6)))
     (error "Not over an area of whitespace")))
 
 ;; Also Bryan O'Sullivan's.
@@ -870,14 +824,26 @@ remains unchanged."
   (interactive)
   (save-excursion
     (let ((old-point (point))
-	  (scc "\\({-#[ \t]*SCC \"[^\"]*\"[ \t]*#-}\\)[ \t]*"))
+          (scc "\\({-#[ \t]*SCC \"[^\"]*\"[ \t]*#-}\\)[ \t]*"))
       (while (not (or (looking-at scc) (bolp)))
-	(forward-char -1))
+        (forward-char -1))
       (if (and (looking-at scc)
-	       (<= (match-beginning 1) old-point)
-	       (> (match-end 1) old-point))
-	  (kill-region (match-beginning 0) (match-end 0))
-	(error "No SCC at point")))))
+               (<= (match-beginning 1) old-point)
+               (> (match-end 1) old-point))
+          (kill-region (match-beginning 0) (match-end 0))
+        (error "No SCC at point")))))
+
+(defun haskell-rgrep (&optional prompt)
+  "Grep the effective project for the symbol at point. Very
+useful for codebase navigation. Prompts for an arbitrary regexp
+given a prefix arg."
+  (interactive "P")
+  (let ((sym (if prompt
+                 (read-from-minibuffer "Look for: ")
+               (haskell-ident-at-point))))
+    (rgrep sym
+           "*.hs" ;; TODO: common Haskell extensions.
+           (haskell-session-current-dir (haskell-session)))))
 
 
 ;; Provide ourselves:

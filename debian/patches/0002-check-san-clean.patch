@@ -1,0 +1,25 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Fri, 27 Dec 2013 16:26:09 +0100
+Subject: check san clean
+
+Do not invoke clean as a precondition of the check Makefile target: it
+deletes *.elc (which is not a problem) and also the generated
+haskell-mode.info and autoloads files, which need to be installed in
+the Debian binary package.
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index d360866..15b8d2c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -74,7 +74,7 @@ $(ELCHECKS): check-%: %.el
+ 	fi
+ 	@echo "--"
+ 
+-check: clean $(ELCHECKS)
++check: $(ELCHECKS)
+ 	@echo "checks passed!"
+ 
+ clean:

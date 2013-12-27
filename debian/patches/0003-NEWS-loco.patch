@@ -1,0 +1,26 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Fri, 27 Dec 2013 16:34:14 +0100
+Subject: NEWS loco
+
+The file NEWS contains the change log.  The upstream package expects
+it to be installed, under the name NEWS, to the directory in which
+elisp files to be loaded are located.  This would be strange on
+debian, since it is the upstream change log and hence belongs in the
+standard documentation directory under the name changelog.gz.
+---
+ haskell-mode.el | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/haskell-mode.el b/haskell-mode.el
+index b65543d..a882d7a 100644
+--- a/haskell-mode.el
++++ b/haskell-mode.el
+@@ -178,7 +178,7 @@ When MESSAGE is non-nil, display a message with the version."
+ (defun haskell-mode-view-news ()
+   "Display information on recent changes to haskell-mode."
+   (interactive)
+-  (with-current-buffer (find-file-read-only (expand-file-name "NEWS" haskell-mode-pkg-base-dir))
++  (with-current-buffer (find-file-read-only (expand-file-name "changelog.gz" "/usr/share/doc/haskell-mode/"))
+     (goto-char (point-min))
+     (hide-sublevels 1)
+     (outline-next-visible-heading 1)

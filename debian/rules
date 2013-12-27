@@ -6,13 +6,18 @@
 version=$(shell dpkg-parsechangelog | sed -rne 's/^Version: ([0-9.-]+)$$/\1/p')
 git_version=00000000
 
+gitver=VERSION=$(version) GIT_VERSION=$(git_version)
+
+override_dh_auto_clean:
+	dh_auto_clean -- $(gitver)
+
 override_dh_auto_build:
-	dh_auto_build -- VERSION=$(version) GIT_VERSION=$(git_version) haskell-mode-autoloads.el haskell-mode.info
+	dh_auto_build -- $(gitver) haskell-mode-autoloads.el haskell-mode.info
 
 override_dh_auto_install:
 
 override_dh_auto_test:
-	dh_auto_test -- VERSION=$(version) GIT_VERSION=$(git_version)
+	dh_auto_test -- $(gitver)
 
 dest_dir=debian/haskell-mode
 icon_dir=usr/share/icons/locolor/scalable

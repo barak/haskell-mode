@@ -5,6 +5,7 @@ INSTALL_INFO = install-info
 EMACS = emacs
 EFLAGS =
 BATCH = $(EMACS) $(EFLAGS) --batch -Q -L .
+SUBST_ATAT = sed -e 's/@@GIT_VERSION@@/$(GIT_VERSION)/g;s/@GIT_VERSION@/$(GIT_VERSION)/g;s/@@VERSION@@/$(VERSION)/g;s/@VERSION@/$(VERSION)/g'
 
 ELFILES = \
 	ghc-core.el \
@@ -13,6 +14,7 @@ ELFILES = \
 	haskell-cabal.el \
 	haskell-checkers.el \
 	haskell-compat.el \
+	haskell-compile.el \
 	haskell-decl-scan.el \
 	haskell-doc.el \
 	haskell-font-lock.el \
@@ -30,8 +32,11 @@ ELFILES = \
 	haskell-simple-indent.el \
 	haskell-sort-imports.el \
 	haskell-string.el \
+	haskell-str.el \
 	haskell-unicode-input-method.el \
+	haskell-utils.el \
 	haskell-yas.el \
+	haskell-presentation-mode.el \
 	inf-haskell.el
 
 ELCFILES = $(ELFILES:.el=.elc)
@@ -59,21 +64,35 @@ $(ELCHECKS): check-%: %.el
 	 	 --eval "(byte-compile-disable-warning 'cl-functions)" \
 		 -f batch-byte-compile $*.el
 	@$(RM) $*.elc
+	@if [ -f "$(<:%.el=tests/%-tests.el)" ]; then \
+	if $(BATCH) --eval "(require 'ert)" 2> /dev/null; then \
+		echo; \
+		$(BATCH) -l "$(<:%.el=tests/%-tests.el)" -f ert-run-tests-batch-and-exit; \
+	else \
+		echo "ERT not available, skipping unit tests"; \
+	fi; \
+	fi
 	@echo "--"
 
-check: $(ELCHECKS)
+check: clean $(ELCHECKS)
 	@echo "checks passed!"
 
 clean:
-	$(RM) $(ELCFILES) $(AUTOLOADS) $(AUTOLOADS:.el=.elc) $(PKG_TAR) haskell-mode.info dir
+	$(RM) $(ELCFILES) $(AUTOLOADS) $(AUTOLOADS:.el=.elc) $(PKG_TAR) haskell-mode.tmp.texi haskell-mode.info dir
 
 info: haskell-mode.info dir
 
 dir: haskell-mode.info
 	$(INSTALL_INFO) --dir=$@ $<
 
-# haskell-mode.info: haskell-mode.texi
-# 	$(MAKEINFO) -o $@ $<
+haskell-mode.tmp.texi: haskell-mode.texi
+	$(SUBST_ATAT) < haskell-mode.texi > haskell-mode.tmp.texi
+
+haskell-mode.info: haskell-mode.tmp.texi
+	$(MAKEINFO) $(MAKEINFO_FLAGS) -o $@ $<
+
+haskell-mode.html: haskell-mode.tmp.texi
+	$(MAKEINFO) $(MAKEINFO_FLAGS) --html --no-split -o $@ $<
 
 # Generate ELPA-compatible package
 package: $(PKG_TAR)
@@ -83,8 +102,8 @@ $(PKG_TAR): $(PKG_DIST_FILES) haskell-mode-pkg.el.in
 	rm -rf haskell-mode-$(VERSION)
 	mkdir haskell-mode-$(VERSION)
 	cp $(PKG_DIST_FILES) haskell-mode-$(VERSION)/
-	sed -e 's/@VERSION@/$(VERSION)/g' < haskell-mode-pkg.el.in > haskell-mode-$(VERSION)/haskell-mode-pkg.el
-	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode-$(VERSION)/haskell-mode.el
+	$(SUBST_ATAT) < haskell-mode-pkg.el.in > haskell-mode-$(VERSION)/haskell-mode-pkg.el
+	$(SUBST_ATAT) < haskell-mode.el > haskell-mode-$(VERSION)/haskell-mode.el
 	(sed -n -e '/^;;; Commentary/,/^;;;/p' | egrep '^;;( |$$)' | cut -c4-) < haskell-mode.el > haskell-mode-$(VERSION)/README
 	tar cvf $@ haskell-mode-$(VERSION)
 	rm -rf haskell-mode-$(VERSION)
@@ -99,7 +118,7 @@ $(AUTOLOADS): $(ELFILES) haskell-mode.elc
 
 # HACK: embed version number into .elc file
 haskell-mode.elc: haskell-mode.el
-	sed -e 's/@GIT_VERSION@/$(GIT_VERSION)/g;s/@VERSION@/$(VERSION)/g' < haskell-mode.el > haskell-mode.tmp.el
+	$(SUBST_ATAT) < haskell-mode.el > haskell-mode.tmp.el
 	@$(BATCH) --eval "(byte-compile-disable-warning 'cl-functions)" -f batch-byte-compile haskell-mode.tmp.el
 	mv haskell-mode.tmp.elc haskell-mode.elc
 	$(RM) haskell-mode.tmp.el

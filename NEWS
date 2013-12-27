@@ -6,6 +6,52 @@ This file uses Org mode. Some useful (default) key-bindings:
  - Use "<backtab>" to cycle visibility of all nodes
  - Use "C-c C-o" to open links
 
+* Changes in 13.8
+
+See also [[https://github.com/haskell/haskell-mode/compare/v13.07...v13.08][detailed Git history]].
+
+- Make `haskell-simple-indent-mode' a proper minor mode with `SInd` as
+  mode-line lighter
+
+- Support popular "λ> " prompt in inf-haskell by default
+
+- Hide internal `*print-haskell-mode*' buffers
+  (used when `haskell-interactive-mode-eval-mode' is active)
+
+- Add tab-completion support for haskell-interactive-mode
+  (requires `:complete' command support in GHCi)
+
+- Add support to `haskell-process-do-info` to perform `:browse!` query
+  on module name when called on import statement line
+
+- `haskell-decl-scan-mode':
+  - New customize group `haskell-decl-scan'
+  - New flag `haskell-decl-scan-bindings-as-variables' for controlling
+    whether to put value bindings into the "Variables" category.
+  - New flag `haskell-decl-scan-add-to-menubar' for controlling
+    whether to add "Declarations" menu entry to menu bar.
+  - New manual section node `(haskell-mode)haskell-decl-scan-mode'
+
+- Add support for [[http://www.haskell.org/ghc/docs/latest/html/users_guide/syntax-extns.html#lambda-case][LambdaCase]] syntax extension to `haskell-indentation`
+
+- Change `haskell-indentation-mode' to never jump back a whole line
+  when pressing DEL.  The old behavior can be restored by setting
+  `haskell-indentation-delete-backward-jump-line' to t
+
+- New convenience function `haskell-cabal-visit-file' for locating and
+  visiting most likely `.cabal` file associated with current buffer
+
+- Add support for [[http://www.haskell.org/ghc/docs/latest/html/users_guide/syntax-extns.html#package-import][PackageImports]] and [[http://www.haskell.org/ghc/docs/latest/html/users_guide/syntax-extns.html#safe-imports-ext][SafeHaskell]] syntax extensions to
+  `haskell-decl-scan-mode' parser
+
+- Add `turn-{on,off}-haskell-doc' commands as aliases for the existing
+  `turn-{on,off}-haskell-doc-mode' commands
+
+- Add support for "cabal repl" process type to `haskell-interactive-mode'
+
+- Add new Haskell compilation sub-mode and associated `haskell-compile'
+  command
+
 * Changes in 13.7
 
 See also [[https://github.com/haskell/haskell-mode/compare/v13.06...v13.07][detailed Git history]].

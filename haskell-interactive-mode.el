@@ -1,8 +1,10 @@
-;;; haskell-interactive-mode.el -- The interactive Haskell mode.
+;;; haskell-interactive-mode.el --- The interactive Haskell mode
 
-;; Copyright (C) 2011-2012 Chris Done
+;; Copyright (C) 2011-2012  Chris Done
 
 ;; Author: Chris Done <chrisdone@gmail.com>
+
+;; This file is not part of GNU Emacs.
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -63,10 +65,12 @@ interference with prompts that look like haskell expressions."
   :type 'boolean
   :group 'haskell-interactive)
 
-;; Used internally
-(defvar haskell-interactive-mode)
-(defvar haskell-interactive-mode-history)
-(defvar haskell-interactive-mode-history-index)
+(defcustom haskell-interactive-mode-include-file-name
+  t
+  "Include the file name of the module being compiled when
+printing compilation messages."
+  :type 'boolean
+  :group 'haskell-interactive)
 
 (defvar haskell-interactive-mode-map
   (let ((map (make-sparse-keymap)))
@@ -86,6 +90,11 @@ interference with prompts that look like haskell expressions."
     map)
   "Interactive Haskell mode map.")
 
+;; buffer-local variables used internally by `haskell-interactive-mode'
+(defvar haskell-interactive-mode-history)
+(defvar haskell-interactive-mode-history-index)
+(defvar haskell-interactive-mode-completion-cache)
+
 ;;;###autoload
 (define-derived-mode haskell-interactive-mode fundamental-mode "Interactive-Haskell"
   "Interactive mode for Haskell.
@@ -96,10 +105,13 @@ information.
 Key bindings:
 \\{haskell-interactive-mode-map}"
   :group 'haskell-interactive
-  (set (make-local-variable 'haskell-interactive-mode) t)
   (set (make-local-variable 'haskell-interactive-mode-history) (list))
   (set (make-local-variable 'haskell-interactive-mode-history-index) 0)
+  (set (make-local-variable 'haskell-interactive-mode-completion-cache) nil)
+
   (setq next-error-function 'haskell-interactive-next-error-function)
+  (setq completion-at-point-functions '(haskell-interactive-mode-completion-at-point-function))
+
   (haskell-interactive-mode-prompt))
 
 
@@ -164,11 +176,12 @@ Key bindings:
     (self-insert-command n)))
 
 (defun haskell-interactive-at-prompt ()
-  "Am I at the prompt?"
+  "If at prompt, returns start position of user-input, otherwise returns nil."
   (let ((current-point (point)))
     (save-excursion (goto-char (point-max))
                     (search-backward-regexp (haskell-interactive-prompt-regex))
-                    (> current-point (point)))))
+                    (when (> current-point (point))
+                      (+ (length haskell-interactive-prompt) (point))))))
 
 (defun haskell-interactive-handle-line ()
   (when (haskell-interactive-at-prompt)
@@ -198,11 +211,20 @@ Key bindings:
                       (setf (cdddr state) (list (length buffer)))
                       nil)))
           :complete (lambda (state response)
-                      (if haskell-interactive-mode-eval-mode
-                          (haskell-interactive-mode-eval-as-mode (car state) response)
-                        (when haskell-interactive-mode-eval-pretty
-                          (haskell-interactive-mode-eval-pretty-result (car state) response)))
+                      (cond
+                       (haskell-interactive-mode-eval-mode
+                        (haskell-interactive-mode-eval-as-mode (car state) response))
+                       ((haskell-interactive-mode-line-is-query (elt state 2))
+                        (let ((haskell-interactive-mode-eval-mode 'haskell-mode))
+                          (haskell-interactive-mode-eval-as-mode (car state) response)))
+                       (haskell-interactive-mode-eval-pretty
+                        (haskell-interactive-mode-eval-pretty-result (car state) response)))
                       (haskell-interactive-mode-prompt (car state)))))))))
+
+(defun haskell-interactive-mode-line-is-query (line)
+  "Is LINE actually a :t/:k/:i?"
+  (and (string-match "^:[itk] " line)
+       t))
 
 (defun haskell-interactive-jump-to-error-line ()
   "Jump to the error line."
@@ -251,12 +273,19 @@ Key bindings:
       (haskell-session-set session 'next-error-region nil)
       (haskell-session-set session 'next-error-locus nil))))
 
+(defun haskell-interactive-mode-input-partial ()
+  "Get the interactive mode input up to point."
+  (let ((input-start (haskell-interactive-at-prompt)))
+    (unless input-start
+      (error "not at prompt"))
+    (buffer-substring-no-properties input-start (point))))
+
 (defun haskell-interactive-mode-input ()
   "Get the interactive mode input."
   (substring
    (buffer-substring-no-properties
     (save-excursion
-      (goto-char (max (point-max)))
+      (goto-char (point-max))
       (search-backward-regexp (haskell-interactive-prompt-regex)))
     (line-end-position))
    (length haskell-interactive-prompt)))
@@ -288,8 +317,7 @@ SESSION, otherwise operate on the current buffer.
                         'result t))))
 
 (defun haskell-interactive-mode-eval-as-mode (session text)
-  "Insert the result of an eval as a pretty printed Showable, if
-  parseable, or otherwise just as-is."
+  "Insert TEXT font-locked according to `haskell-interactive-mode-eval-mode'."
   (with-current-buffer (haskell-session-interactive-buffer session)
     (let ((start-point (save-excursion (search-backward-regexp (haskell-interactive-prompt-regex))
                                        (forward-line 1)
@@ -297,16 +325,21 @@ SESSION, otherwise operate on the current buffer.
           (inhibit-read-only t))
       (delete-region start-point (point))
       (goto-char (point-max))
-      (insert (let ((mode haskell-interactive-mode-eval-mode))
-                (with-current-buffer (get-buffer-create (concat "*print-" (symbol-name mode) "*"))
-                  (unless (eq major-mode mode)
-                    (funcall mode))
-                  (erase-buffer)
-                  (insert text)
-                  (font-lock-fontify-region (point-min) (point-max))
-                  (buffer-substring (point-min)
-                                    (point-max)))))
-      (insert "\n"))))
+      (insert (haskell-interactive-text-as-mode (concat text "\n")
+                                                haskell-interactive-mode-eval-mode)))))
+
+(defun haskell-interactive-text-as-mode (text mode)
+  "Propertize `text' according to the font locking settings of
+`mode'."
+  (with-current-buffer (get-buffer-create (concat " haskell-font-lock-as-"
+                                                  (symbol-name mode)))
+    (unless (eq major-mode mode)
+      (funcall mode))
+    (erase-buffer)
+    (insert text)
+    (font-lock-fontify-region (point-min) (point-max))
+    (buffer-substring (point-min)
+                      (point-max))))
 
 (defun haskell-interactive-mode-eval-pretty-result (session text)
   "Insert the result of an eval as a pretty printed Showable, if
@@ -322,14 +355,18 @@ SESSION, otherwise operate on the current buffer.
       (insert "\n"))))
 
 ;;;###autoload
-(defun haskell-interactive-mode-echo (session message)
+(defun haskell-interactive-mode-echo (session message &optional mode)
   "Echo a read only piece of text before the prompt."
   (with-current-buffer (haskell-session-interactive-buffer session)
     (save-excursion
       (haskell-interactive-mode-goto-end-point)
-      (insert (propertize (concat message "\n")
-                          'read-only t
-                          'rear-nonsticky t)))))
+      (insert (if mode
+                  (haskell-interactive-text-as-mode
+                   (concat message "\n")
+                   mode)
+                (propertize (concat message "\n")
+                            'read-only t
+                            'rear-nonsticky t))))))
 
 (defun haskell-interactive-mode-compile-error (session message)
   "Echo an error."
@@ -437,7 +474,10 @@ SESSION, otherwise operate on the current buffer.
 (defun haskell-interactive-show-load-message (session type module-name file-name echo)
   "Show the '(Compiling|Loading) X' message."
   (let ((msg (ecase type
-               ('compiling (format "Compiling: %s (%s)" module-name file-name))
+               ('compiling
+                (if haskell-interactive-mode-include-file-name
+                    (format "Compiling: %s (%s)" module-name file-name)
+                  (format "Compiling: %s" module-name)))
                ('loading (format "Loading: %s" module-name)))))
     (haskell-mode-message-line msg)
     (when haskell-interactive-mode-delete-superseded-errors
@@ -445,10 +485,29 @@ SESSION, otherwise operate on the current buffer.
     (when echo
       (haskell-interactive-mode-echo session msg))))
 
+(defun haskell-interactive-mode-completion-at-point-function ()
+  "Offer completions for partial expression between prompt and point"
+  (when (haskell-interactive-at-prompt)
+    (let* ((process (haskell-process))
+           (session (haskell-session))
+           (inp (haskell-interactive-mode-input-partial)))
+      (if (string= inp (car-safe haskell-interactive-mode-completion-cache))
+          (cdr haskell-interactive-mode-completion-cache)
+        (let* ((resp2 (haskell-process-get-repl-completions process inp))
+               (rlen (-  (length inp) (length (car resp2))))
+               (coll (append (if (string-prefix-p inp "import") '("import"))
+                             (if (string-prefix-p inp "let") '("let"))
+                             (cdr resp2)))
+               (result (list (- (point) rlen) (point) coll)))
+          (setq haskell-interactive-mode-completion-cache (cons inp result))
+          result)))))
+
 (defun haskell-interactive-mode-tab ()
   "The tab command."
   (interactive)
   (cond
+   ((haskell-interactive-at-prompt)
+    (completion-at-point))
    ((get-text-property (point) 'collapsible)
     (let ((column (current-column)))
       (search-backward-regexp "^[^ ]")

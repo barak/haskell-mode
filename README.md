@@ -1,10 +1,24 @@
 Haskell Mode for Emacs
 ----------------------
 
-[![Build Status](https://travis-ci.org/haskell/haskell-mode.png?branch=master)](https://travis-ci.org/haskell/haskell-mode)
+[![Build Status](https://travis-ci.org/haskell/haskell-mode.svg?branch=master)](https://travis-ci.org/haskell/haskell-mode)
+[![Melpa Status](http://melpa.org/packages/haskell-mode-badge.svg)](http://melpa.org/#/haskell-mode)
+[![Melpa Stable Status](http://stable.melpa.org/packages/haskell-mode-badge.svg)](http://stable.melpa.org/#/haskell-mode)
 
-This is the Haskell mode package for Emacs.  Its use should be mostly
-self-explanatory if you're accustomed to Emacs.
+This is the Haskell mode package for Emacs.
+
+Please see
+[the online haskell-mode manual](https://github.com/haskell/haskell-mode/wiki)
+for setup and use guide.
+
+To report problems or suggestions, please
+[open an issue](https://github.com/haskell/haskell-mode/issues?state=open)
+in the issue tracker.
+
+Below is a brief setup guide.
+
+Quick Emacs rundown
+--------------------
 
 When Emacs is started up, it normally loads the
 [Emacs initialization file](http://www.gnu.org/software/emacs/manual/html_node/emacs/Init-File.html)
@@ -58,17 +72,23 @@ Alternatively, you can also download the `.tar` file via the
 _Download_ link at http://marmalade-repo.org/packages/haskell-mode and
 install the package `.tar`-file via `M-x package-install-file`
 
+Note that in this case you will also need to have a sufficiently
+recent version of `cl-lib.el`, upon which `haskell-mode` depends.
+This is bundled with Emacs 24.3 and later, and a backported version
+for use with older Emacs versions can be obtained from
+[GNU ELPA](http://elpa.gnu.org/packages/cl-lib.html).
+
 #### MELPA
 
-**Unstable snapshots** can be installed via the
-[MELPA](http://melpa.milkbox.net) community maintained repository.
+**Development snapshots** can be installed via the
+[MELPA](http://melpa.org) community maintained repository.
 
 For MELPA the code you need to add is:
 
 ```lisp
 (require 'package)
 (add-to-list 'package-archives
-             '("melpa" . "http://melpa.milkbox.net/packages/") t)
+             '("melpa" . "http://melpa.org/packages/") t)
 (package-initialize)
 ```
 
@@ -110,13 +130,13 @@ $ apt-get install haskell-mode
 
     - Invoking `make haskell-mode-autoloads.el`, or `make all` (use
       this to perform byte-compilation and Info manual generation)
-    
+
     - From inside Emacs, `M-x update-directory-autoloads` and answering the question for
       the folder with `~/lib/emacs/haskell-mode/` and the question for the output-file with
       `~/lib/emacs/haskell-mode/haskell-mode-autoloads.el`
-    
+
     and then adding the following command to your `.emacs`:
-  
+
     ```el
     (add-to-list 'load-path "~/lib/emacs/haskell-mode/")
     (require 'haskell-mode-autoloads)

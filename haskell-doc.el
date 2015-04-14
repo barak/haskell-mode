@@ -345,7 +345,6 @@
 (require 'haskell-mode)
 (require 'inf-haskell)
 (require 'imenu)
-(with-no-warnings (require 'cl))
 
 (defgroup haskell-doc nil
   "Show Haskell function types in echo area."
@@ -1855,7 +1854,7 @@ This function switches to and potentially loads many buffers."
   (save-current-buffer
     (mapcar (lambda (f)
               (set-buffer (find-file-noselect f))
-              (imenu--make-index-alist)
+              (imenu--make-index-alist t)
               (cons f
                     (mapcar (lambda (x)
                               `(,(car x) . ,(haskell-doc-grab-line x)))
@@ -1973,9 +1972,5 @@ This function switches to and potentially loads many buffers."
 ;;@section Token
 
 (provide 'haskell-doc)
-
-;; Local Variables:
-;; byte-compile-warnings: (not cl-functions)
-;; End:
 
 ;;; haskell-doc.el ends here

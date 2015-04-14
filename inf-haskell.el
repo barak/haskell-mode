@@ -32,11 +32,12 @@
 
 (require 'comint)
 (require 'shell)             ; For directory tracking.
+(require 'etags)
+(require 'haskell-compat)
 (require 'compile)
 (require 'haskell-mode)
 (require 'haskell-decl-scan)
 (require 'haskell-cabal)
-(with-no-warnings (require 'cl))
 
 ;; Dynamically scoped variables.
 (defvar find-tag-marker-ring)
@@ -119,7 +120,7 @@ This will either look for a Cabal file or a \"module\" statement in the file."
   :group 'inferior-haskell
   (set (make-local-variable 'comint-prompt-regexp)
        ;; Whay the backslash in [\\._[:alnum:]]?
-       "^\\*?[[:upper:]][\\._[:alnum:]]*\\(?: \\*?[[:upper:]][\\._[:alnum:]]*\\)*> \\|^λ?> $")
+       "^\\*?[[:upper:]][\\._[:alnum:]]*\\(?: \\*?[[:upper:]][\\._[:alnum:]]*\\)*\\( λ\\)?> \\|^λ?> $")
   (set (make-local-variable 'comint-input-autoexpand) nil)
   (add-hook 'comint-preoutput-filter-functions
             'inferior-haskell-send-decl-post-filter)
@@ -497,7 +498,7 @@ The returned info is cached for reuse by `haskell-doc-mode'."
   (if (string-match "\\`\\s_+\\'" expr) (setq expr (concat "(" expr ")")))
   (let ((type (inferior-haskell-get-result (concat ":type " expr))))
     (if (not (string-match (concat "^\\(" (regexp-quote expr)
-                                   "[ \t\n]+::[ \t\n]*\\(.\\|\n\\)*\\)")
+                                   "[ \t\n]+\\(::\\|∷\\)[ \t\n]*\\(.\\|\n\\)*\\)")
                            type))
         (error "No type info: %s" type)
       (progn
@@ -506,7 +507,7 @@ The returned info is cached for reuse by `haskell-doc-mode'."
         (when (and (boundp 'haskell-doc-mode) haskell-doc-mode
                    (boundp 'haskell-doc-user-defined-ids)
                    ;; Haskell-doc only works for idents, not arbitrary expr.
-                   (string-match "\\`(?\\(\\s_+\\|\\(\\sw\\|\\s'\\)+\\)?[ \t]*::[ \t]*"
+                   (string-match "\\`(?\\(\\s_+\\|\\(\\sw\\|\\s'\\)+\\)?[ \t]*\\(::\\|∷\\)[ \t]*"
                                  type))
           (let ((sym (match-string 1 type)))
             (setq haskell-doc-user-defined-ids
@@ -569,7 +570,7 @@ The returned info is cached for reuse by `haskell-doc-mode'."
             (setq file (expand-file-name file)))
           ;; Push current location marker on the ring used by `find-tag'
           (require 'etags)
-          (ring-insert find-tag-marker-ring (point-marker))
+          (xref-push-marker-stack)
           (pop-to-buffer (find-file-noselect file))
           (when line
             (goto-char (point-min))
@@ -628,10 +629,12 @@ By default this is set to `ghc --print-libdir`/package.conf."
     (unless (string-match inferior-haskell-module-re info)
       (error
        "No documentation information available.  Did you forget to C-c C-l?"))
-    (let ((module-name (match-string-no-properties 1 info)))
+    (let* ((module-name (match-string-no-properties 1 info))
+          (first-character (substring module-name 0 1)))
       ;; Handles GHC 7.4.1+ which quotes module names like
       ;; `System.Random', whereas previous GHC did not quote at all.
-      (if (string= "`" (substring module-name 0 1))
+      (if (or (string= "`" first-character) (string= "‘" first-character))
+
           (substring module-name 1 (- (length module-name) 1))
         module-name))))
 
@@ -734,7 +737,8 @@ so that it can be obtained more quickly next time.")
 (defvar inferior-haskell-ghc-internal-ident-alist
   ;; FIXME: Fill this table, ideally semi-automatically.
   '(("GHC.Base.return" . "Control.Monad.return")
-    ("GHC.List" . "Data.List")))
+    ("GHC.Base.String" . "Data.String.String")
+    ("GHC.List"        . "Data.List")))
 
 (defun inferior-haskell-map-internal-ghc-ident (ident)
   "Try to translate some internal GHC identifier to its alter ego in haskell docs."
@@ -771,9 +775,12 @@ we load it."
                             (format "Find documentation of (default %s): " sym)
                           "Find documentation of: ")
                         nil nil sym))))
-  (setq sym (inferior-haskell-map-internal-ghc-ident sym))
   (let* (;; Find the module and look it up in the alist
          (module (inferior-haskell-get-module sym))
+         (full-name (inferior-haskell-map-internal-ghc-ident (concat module "." sym)))
+         (success (string-match "\\(.*\\)\\.\\(.*\\)" full-name))
+         (module (match-string 1 full-name))
+         (sym (match-string 2 full-name))
          (alist-record (assoc module (inferior-haskell-module-alist)))
          (package (nth 1 alist-record))
          (file-name (concat (subst-char-in-string ?. ?- module) ".html"))
@@ -781,17 +788,42 @@ we load it."
          (url (if (or (eq inferior-haskell-use-web-docs 'always)
                       (and (not (file-exists-p local-path))
                            (eq inferior-haskell-use-web-docs 'fallback)))
-                  (concat inferior-haskell-web-docs-base package "/" file-name
-                          ;; Jump to the symbol anchor within Haddock.
-                          "#v:" sym)
+                  (concat inferior-haskell-web-docs-base package "/" file-name)
                 (and (file-exists-p local-path)
-                     (concat "file://" local-path)))))
+                     (concat "file://" local-path))))
+         ;; Jump to the symbol within Haddock.
+         (url (concat url "#v:" sym)))
     (if url (browse-url url) (error "Local file doesn't exist"))))
 
-(provide 'inf-haskell)
+(defvar inf-haskell-mode-map
+  (let ((map (make-sparse-keymap)))
+    ;; (define-key map [?\M-C-x]     'inferior-haskell-send-defun)
+    ;; (define-key map [?\C-x ?\C-e] 'inferior-haskell-send-last-sexp)
+    ;; (define-key map [?\C-c ?\C-r] 'inferior-haskell-send-region)
+    (define-key map [?\C-x ?\C-d] 'inferior-haskell-send-decl)
+    (define-key map [?\C-c ?\C-z] 'switch-to-haskell)
+    (define-key map [?\C-c ?\C-l] 'inferior-haskell-load-file)
+    ;; I think it makes sense to bind inferior-haskell-load-and-run to C-c
+    ;; C-r, but since it used to be bound to `reload' until June 2007, I'm
+    ;; going to leave it out for now.
+    ;; (define-key map [?\C-c ?\C-r] 'inferior-haskell-load-and-run)
+    (define-key map [?\C-c ?\C-b] 'switch-to-haskell)
+    ;; (define-key map [?\C-c ?\C-s] 'inferior-haskell-start-process)
+    ;; That's what M-; is for.
+    (define-key map (kbd "C-c C-t") 'inferior-haskell-type)
+    (define-key map (kbd "C-c C-i") 'inferior-haskell-info)
+    (define-key map (kbd "C-c M-.") 'inferior-haskell-find-definition)
+    (define-key map (kbd "C-c C-d") 'inferior-haskell-find-haddock)
+    (define-key map [?\C-c ?\C-v] 'haskell-check)
+    map)
+  "Keymap for using inf-haskell.")
 
-;; Local Variables:
-;; byte-compile-warnings: (not cl-functions)
-;; End:
+;;;###autoload
+(define-minor-mode inf-haskell-mode
+  "Minor mode for enabling inf-haskell process interaction."
+  :lighter " Inf-Haskell"
+  :keymap inf-haskell-mode-map)
+
+(provide 'inf-haskell)
 
 ;;; inf-haskell.el ends here

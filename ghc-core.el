@@ -29,7 +29,6 @@
 ;; and removal of commonly ignored annotations.
 
 ;;; Code:
-
 (require 'haskell-mode)
 (require 'haskell-font-lock)
 
@@ -112,6 +111,8 @@ in the current buffer."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.hcr\\'" . ghc-core-mode))
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.dump-simpl\\'" . ghc-core-mode))
 
 ;;;###autoload
 (define-derived-mode ghc-core-mode haskell-mode "GHC-Core"

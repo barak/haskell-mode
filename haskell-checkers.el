@@ -26,7 +26,6 @@
 ;;; Code:
 
 (require 'compile)
-(with-no-warnings (require 'cl))
 
 (defgroup haskell-checkers nil
   "Run HLint as inferior of Emacs, parse error messages."
@@ -105,19 +104,19 @@
         (goto-char (point-min))
         (forward-line (1- fline))
         (beginning-of-line)
-        (setf bline (point))
+        (setq bline (point))
         (when (or hs-checkers-replace-without-ask
                   (yes-or-no-p msg))
           (end-of-line)
-          (setf eline (point))
+          (setq eline (point))
           (beginning-of-line)
-          (setf old-code (regexp-quote old-code))
+          (setq old-code (regexp-quote old-code))
           (while (string-match "\\\\ " old-code spos)
-            (setf new-old-code (concat new-old-code
+            (setq new-old-code (concat new-old-code
                                        (substring old-code spos (match-beginning 0))
                                        "\\ *"))
-            (setf spos (match-end 0)))
-          (setf new-old-code (concat new-old-code (substring old-code spos)))
+            (setq spos (match-end 0)))
+          (setq new-old-code (concat new-old-code (substring old-code spos)))
           (remove-text-properties bline eline '(composition nil))
           (when (re-search-forward new-old-code eline t)
             (replace-match new-code nil t)))))))
@@ -174,9 +173,5 @@ name - user visible name for this mode"
 (hs-checkers-setup scan "HScan")
 
 (provide 'haskell-checkers)
-
-;; Local Variables:
-;; byte-compile-warnings: (not cl-functions)
-;; End:
 
 ;;; haskell-checkers.el ends here

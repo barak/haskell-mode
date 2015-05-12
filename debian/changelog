@@ -1,3 +1,12 @@
+haskell-mode (13.12-2) unstable; urgency=medium
+
+  * ack NMU
+  * accept NMU mod
+  * bump policy twice in parallel
+  * broken by yasnippet (<< 0.8); patch from Hilko Bengen (closes: #782729)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 12 May 2015 12:27:37 +0100
+
 haskell-mode (13.12-1.1) unstable; urgency=medium
 
   * Non-maintainer upload.

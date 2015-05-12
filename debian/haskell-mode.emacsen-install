@@ -11,7 +11,7 @@ FLAVOR=$1
 PACKAGE=haskell-mode
 
 case ${FLAVOR} in
-    emacs|emacs21|xemacs21)
+    emacs|emacs23|emacs22|emacs21|xemacs21)
 	# emacs21 needs the "syntax" package, see README.md
 	# xemacs21 is documented to be unsupported.
 	# emacs is part of the debian infrastructure and not a target emacs.

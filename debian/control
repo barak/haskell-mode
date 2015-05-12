@@ -6,7 +6,7 @@ Uploaders: Isaac Jones <ijones@debian.org>,
 	   David Bremner <bremner@debian.org>,
 	   Barak A. Pearlmutter <bap@debian.org>
 Build-Depends: debhelper (>= 9),
-	emacs24 | emacs23 | emacs-snapshot,
+	emacs24 | emacs-snapshot,
 	texinfo
 Standards-Version: 3.9.6
 Homepage: https://github.com/haskell/haskell-mode
@@ -15,7 +15,7 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/haskell-mode.git
 
 Package: haskell-mode
 Architecture: all
-Depends: emacs24 | emacs23 | emacs-snapshot | emacs, ${misc:Depends}
+Depends: emacs24 | emacs-snapshot | emacs, ${misc:Depends}
 Breaks: agda-mode (<< 2.3.2)
 Recommends: ghc | hugs
 Description: major mode for editing Haskell in Emacs

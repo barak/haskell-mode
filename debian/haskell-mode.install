@@ -1,1 +1,2 @@
 *.el /usr/share/emacs/site-lisp/haskell-mode
+snippets/haskell-mode/* /usr/share/emacs/site-lisp/haskell-mode/snippets/

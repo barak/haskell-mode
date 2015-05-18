@@ -1,3 +1,9 @@
+haskell-mode (13.12-3) unstable; urgency=medium
+
+  * yasnippet integration, should work with newer yasnippet package
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 18 May 2015 20:33:04 +0100
+
 haskell-mode (13.12-2) unstable; urgency=medium
 
   * ack NMU

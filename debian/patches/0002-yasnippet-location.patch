@@ -1,0 +1,23 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Mon, 18 May 2015 19:28:08 +0100
+Subject: yasnippet location
+
+Tell haskell-yas.el that haskell-mode snippets live in
+/usr/share/emacs/site-lisp/haskell-mode/snippets/
+---
+ haskell-yas.el | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/haskell-yas.el b/haskell-yas.el
+index 29635ca..c7f11e1 100644
+--- a/haskell-yas.el
++++ b/haskell-yas.el
+@@ -52,7 +52,7 @@
+   (apply haskell-yas-completing-function args))
+ 
+ (defconst haskell-snippets-dir
+-  (expand-file-name "snippets" (file-name-directory load-file-name)))
++  "/usr/share/emacs/site-lisp/haskell-mode/snippets/")
+ 
+ (defvar yas-snippet-dirs)
+ (declare-function yas-load-directory "ext:yasnippet"

@@ -44,7 +44,7 @@ Used for locating additional package data files.")
 (defcustom haskell-process-type
   'auto
   "The inferior Haskell process type to use."
-  :type '(choice (const auto) (const ghci) (const cabal-repl) (const cabal-dev) (const cabal-ghci))
+  :type '(choice (const auto) (const ghci) (const cabal-repl) (const cabal-ghci))
   :group 'haskell-interactive)
 
 (defcustom haskell-process-wrapper-function
@@ -77,6 +77,13 @@ a per-project basis."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Configuration
 
+(defcustom haskell-doc-prettify-types t
+  "Replace some parts of types with Unicode characters like \"∷\"
+when showing type information about symbols."
+  :group 'haskell-doc
+  :type 'boolean
+  :safe 'booleanp)
+
 (defvar haskell-process-end-hook nil
   "Hook for when the haskell process ends.")
 
@@ -100,12 +107,6 @@ a per-project basis."
 (defcustom haskell-process-path-cabal-ghci
   "cabal-ghci"
   "The path for starting cabal-ghci."
-  :group 'haskell-interactive
-  :type '(choice string (repeat string)))
-
-(defcustom haskell-process-path-cabal-dev
-  "cabal-dev"
-  "The path for starting cabal-dev."
   :group 'haskell-interactive
   :type '(choice string (repeat string)))
 
@@ -273,12 +274,6 @@ ambiguous class constraint."
   :type 'boolean
   :group 'haskell-interactive)
 
-(defcustom haskell-interactive-mode-eval-pretty
-  nil
-  "Print eval results that can be parsed as Show instances prettily. Requires sexp-show (on Hackage)."
-  :type 'boolean
-  :group 'haskell-interactive)
-
 (defvar haskell-interactive-prompt "λ> "
   "The prompt to use.")
 
@@ -333,6 +328,18 @@ when Data.Map is the candidate.
   :group 'shm
   :type '(repeat 'string))
 
+(defcustom haskell-ghc-supported-extensions
+  (split-string (shell-command-to-string "ghc --supported-extensions"))
+  "List of language extensions supported by the installed version of GHC."
+  :group 'haskell
+  :type '(repeat string))
+
+(defcustom haskell-ghc-supported-options
+  (split-string (shell-command-to-string "ghc --show-options"))
+  "List of options supported by the installed version of GHC."
+  :group 'haskell
+  :type '(repeat string))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Accessor functions
 
@@ -356,7 +363,7 @@ sure all haskell customize definitions have been loaded."
   (interactive)
   ;; make sure all modules with (defcustom ...)s are loaded
   (mapc 'require
-        '(haskell-checkers haskell-compile haskell-doc haskell-font-lock haskell-indentation haskell-indent haskell-interactive-mode haskell-menu haskell-process haskell-yas inf-haskell))
+        '(haskell-checkers haskell-compile haskell-doc haskell-font-lock haskell-indentation haskell-indent haskell-interactive-mode haskell-menu haskell-process inf-haskell))
   (customize-browse 'haskell))
 
 (provide 'haskell-customize)

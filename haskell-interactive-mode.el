@@ -32,7 +32,6 @@
 (require 'haskell-process)
 (require 'haskell-collapse)
 (require 'haskell-session)
-(require 'haskell-show)
 (require 'haskell-font-lock)
 (require 'haskell-presentation-mode)
 
@@ -416,7 +415,7 @@ SESSION, otherwise operate on the current buffer.
       (message "%s"
                (concat (car lines)
                        (if (and (cdr lines) (stringp (cadr lines)))
-                           (format " [ %s .. ]" (haskell-string-take (haskell-trim (cadr lines)) 10))
+                           (format " [ %s .. ]" (haskell-string-take (haskell-string-trim (cadr lines)) 10))
                          ""))))))
 
 (defun haskell-interactive-mode-tab ()
@@ -1094,30 +1093,22 @@ don't care when the thing completes as long as it's soonish."
                           'rear-nonsticky t)))))
 
 ;;;###autoload
-(defun haskell-process-do-simple-echo (line &optional mode)
-  "Send LINE to the GHCi process and echo the result in some
-fashion, such as printing in the minibuffer, or using
-haskell-present, depending on configuration."
+(defun haskell-process-show-repl-response (line)
+  "Send LINE to the GHCi process and echo the result in some fashion.
+Result will be printed in the minibuffer or presented using
+haskell-present, depending on variable `haskell-process-use-presentation-mode'."
   (let ((process (haskell-interactive-process)))
     (haskell-process-queue-command
      process
      (make-haskell-command
-      :state (list process line mode)
+      :state (cons process line)
       :go (lambda (state)
-            (haskell-process-send-string (car state) (cadr state)))
+            (haskell-process-send-string (car state) (cdr state)))
       :complete (lambda (state response)
-                  ;; TODO: TBD: don't do this if
-                  ;; `haskell-process-use-presentation-mode' is t.
-                  (haskell-interactive-mode-echo
-                   (haskell-process-session (car state))
-                   response
-                   (cl-caddr state))
                   (if haskell-process-use-presentation-mode
-                      (progn (haskell-present (cadr state)
-                                              (haskell-process-session (car state))
-                                              response)
-                             (haskell-session-assign
-                              (haskell-process-session (car state))))
+                      (haskell-present
+                       (haskell-process-session (car state))
+                       response)
                     (haskell-mode-message-line response)))))))
 
 (provide 'haskell-interactive-mode)

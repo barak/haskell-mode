@@ -1,15 +1,36 @@
-VERSION = $(shell git describe --tags --match 'v[0-9]*' --abbrev=0 | sed 's/^v//;s/\.0*/./g')
-GIT_VERSION = $(shell git describe --tags --match 'v[0-9]*' --long --dirty | sed 's/^v//')
+#
+# Note: Due to MELPA distributing directly from github source version
+# needs to be embedded in files as is without proprocessing.
+#
+# Version string is present in:
+# - Makefile
+# - haskell-mode.el
+# - haskell-mode.texi
+#
+# We should have a script that changes it everywhere it is needed and
+# syncs it with current git tag.
+#
+VERSION = 13.14
 
 INSTALL_INFO = install-info
-EMACS = emacs
+
+# Use $EMACS environment variable if present, so that all of these are
+# equivalent:
+#
+# 1.  export EMACS=/path/to/emacs && make
+# 2.  EMACS=/path/to/emacs make
+# 3.  make EMACS=/path/to/emacs
+#
+# This is particularly useful when EMACS is set in ~/.bash_profile
+#
+EMACS := $(shell echo "$${EMACS:-emacs}")
+
 EFLAGS = --eval "(add-to-list 'load-path (expand-file-name \"tests/compat\") 'append)" \
-         --eval "(when (< emacs-major-version 24) \
-                    (setq byte-compile-warnings '(not cl-functions)))" \
-         --eval '(setq byte-compile-error-on-warn t)'
+	 --eval "(when (< emacs-major-version 24) \
+		    (setq byte-compile-warnings '(not cl-functions)))" \
+	 --eval '(setq byte-compile-error-on-warn t)'
 
 BATCH = $(EMACS) $(EFLAGS) --batch -Q -L .
-SUBST_ATAT = sed -e 's/@@GIT_VERSION@@/$(GIT_VERSION)/g;s/@GIT_VERSION@/$(GIT_VERSION)/g;s/@@VERSION@@/$(VERSION)/g;s/@VERSION@/$(VERSION)/g'
 
 ELFILES = \
 	ghc-core.el \
@@ -18,7 +39,6 @@ ELFILES = \
 	haskell-align-imports.el \
 	haskell-bot.el \
 	haskell-cabal.el \
-	haskell-c.el \
 	haskell-checkers.el \
 	haskell-collapse.el \
 	haskell-modules.el \
@@ -46,30 +66,37 @@ ELFILES = \
 	haskell-process.el \
 	haskell-repl.el \
 	haskell-session.el \
-	haskell-show.el \
 	haskell-simple-indent.el \
 	haskell-sort-imports.el \
-	haskell-str.el \
 	haskell-string.el \
 	haskell-unicode-input-method.el \
 	haskell-utils.el \
-	haskell-yas.el \
 	inf-haskell.el
 
 ELCFILES = $(ELFILES:.el=.elc)
 AUTOLOADS = haskell-mode-autoloads.el
 
 PKG_DIST_FILES = $(ELFILES) logo.svg NEWS haskell-mode.info dir
-PKG_TAR = haskell-mode-$(VERSION).tar
 ELCHECKS=$(addprefix check-, $(ELFILES:.el=))
 
 %.elc: %.el
 	@$(BATCH) \
 		 -f batch-byte-compile $*.el
 
-.PHONY: all compile info clean check $(ELCHECKS) elpa package
+.PHONY: all compile info clean check $(ELCHECKS) elpa package check-emacs-version
 
-all: compile $(AUTOLOADS) info
+all: check-emacs-version compile $(AUTOLOADS) info
+
+check-emacs-version :
+	@$(BATCH) --eval "(when (< emacs-major-version 24)					\
+                            (message \"Error: haskell-mode requires Emacs 23 or later\")	\
+                            (message \"Your version of Emacs is %s\" emacs-version)		\
+                            (message \"Found as '$(EMACS)'\")					\
+                            (message \"Use one of:\")						\
+                            (message \"   1.  export EMACS=/path/to/emacs && make\")		\
+                            (message \"   2.  EMACS=/path/to/emacs make\")			\
+                            (message \"   3.  make EMACS=/path/to/emacs\")			\
+                            (kill-emacs 2))"
 
 compile: $(ELCFILES)
 
@@ -84,57 +111,44 @@ check: $(ELCHECKS)
 	@echo "checks passed!"
 
 clean:
-	$(RM) $(ELCFILES) $(AUTOLOADS) $(AUTOLOADS:.el=.elc) $(PKG_TAR) haskell-mode.tmp.texi haskell-mode.info dir
+	$(RM) $(ELCFILES) $(AUTOLOADS) $(AUTOLOADS:.el=.elc) haskell-mode.info dir
 
 info: haskell-mode.info dir
 
 dir: haskell-mode.info
 	$(INSTALL_INFO) --dir=$@ $<
 
-haskell-mode.tmp.texi: haskell-mode.texi
-	@sed -n -e '/@chapter/ s/@code{\(.*\)}/\1/' \
-                -e 's/@chapter \(.*\)$$/* \1::/p' \
-                -e 's/@unnumbered \(.*\)$$/* \1::/p' \
-               haskell-mode.texi > haskell-mode-menu-order.txt
-	@sed -e '1,/@menu/ d' \
-            -e '/end menu/,$$ d' \
-            haskell-mode.texi > haskell-mode-content-order.txt
-	diff -C 1 haskell-mode-menu-order.txt haskell-mode-content-order.txt
-	@rm haskell-mode-menu-order.txt haskell-mode-content-order.txt
+haskell-mode.info: doc/haskell-mode.texi
+	LANG=en_US.UTF-8 $(MAKEINFO) $(MAKEINFO_FLAGS) -o $@ $<
 
-	$(SUBST_ATAT) < haskell-mode.texi > haskell-mode.tmp.texi
+doc/haskell-mode.html: doc/haskell-mode.texi doc/haskell-mode.css
+	LANG=en_US.UTF-8 $(MAKEINFO) $(MAKEINFO_FLAGS) --html --css-include=doc/haskell-mode.css --no-split -o $@ $<
 
-haskell-mode.info: haskell-mode.tmp.texi
-	$(MAKEINFO) $(MAKEINFO_FLAGS) -o $@ $<
+doc/html/index.html : doc/haskell-mode.texi
+	if [ -e doc/html ]; then rm -r doc/html; fi
+	LANG=en_US.UTF-8 $(MAKEINFO) $(MAKEINFO_FLAGS) --html				\
+	    --css-ref=haskell-mode.css							\
+	    -c AFTER_BODY_OPEN='<div class="background"> </div>'			\
+	    -c EXTRA_HEAD='<link rel="shortcut icon" href="haskell-mode-32x32.png">'	\
+	    -c SHOW_TITLE=0								\
+	    -o doc/html $<
 
-haskell-mode.html: haskell-mode.tmp.texi
-	$(MAKEINFO) $(MAKEINFO_FLAGS) --html --no-split -o $@ $<
+doc/html/haskell-mode.css : doc/haskell-mode.css doc/html/index.html
+	cp $< $@
 
-# Generate ELPA-compatible package
-package: $(PKG_TAR)
-elpa: $(PKG_TAR)
+doc/html/haskell-mode.svg : images/haskell-mode.svg doc/html/index.html
+	cp $< $@
 
-$(PKG_TAR): $(PKG_DIST_FILES) haskell-mode-pkg.el.in
-	rm -rf haskell-mode-$(VERSION)
-	mkdir haskell-mode-$(VERSION)
-	cp $(PKG_DIST_FILES) haskell-mode-$(VERSION)/
-	$(SUBST_ATAT) < haskell-mode-pkg.el.in > haskell-mode-$(VERSION)/haskell-mode-pkg.el
-	$(SUBST_ATAT) < haskell-mode.el > haskell-mode-$(VERSION)/haskell-mode.el
-	(sed -n -e '/^;;; Commentary/,/^;;;/p' | egrep '^;;( |$$)' | cut -c4-) < haskell-mode.el > haskell-mode-$(VERSION)/README
-	tar cvf $@ haskell-mode-$(VERSION)
-	rm -rf haskell-mode-$(VERSION)
-	@echo
-	@echo "Created ELPA compatible distribution package '$@' from $(GIT_VERSION)"
+doc/html/haskell-mode-32x32.png : images/haskell-mode-32x32.png doc/html/index.html
+	cp $< $@
+
+doc/html : doc/html/index.html doc/html/haskell-mode.css doc/html/haskell-mode.svg doc/html/haskell-mode-32x32.png
+
+deploy-manual : doc/html
+	cd doc && ./deploy-manual.sh
 
 $(AUTOLOADS): $(ELFILES) haskell-mode.elc
 	$(BATCH) \
 		--eval '(setq make-backup-files nil)' \
 		--eval '(setq generated-autoload-file "$(CURDIR)/$@")' \
 		-f batch-update-autoloads "."
-
-# HACK: embed version number into .elc file
-haskell-mode.elc: haskell-mode.el
-	$(SUBST_ATAT) < haskell-mode.el > haskell-mode.tmp.el
-	@$(BATCH) -f batch-byte-compile haskell-mode.tmp.el
-	mv haskell-mode.tmp.elc haskell-mode.elc
-	$(RM) haskell-mode.tmp.el

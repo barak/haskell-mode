@@ -15,7 +15,7 @@ Instead we install it in a standard location for scalable icons.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/haskell-process.el b/haskell-process.el
-index ecf8900..f9bfe77 100644
+index c0c28cd..1abea78 100644
 --- a/haskell-process.el
 +++ b/haskell-process.el
 @@ -46,7 +46,7 @@

@@ -1,4 +1,4 @@
-;;; haskell-unicode-input-method.el --- Haskell Unicode helper functions  -*- coding: utf-8 -*-
+;;; haskell-unicode-input-method.el --- Haskell Unicode helper functions  -*- coding: utf-8; lexical-binding: t -*-
 
 ;; Copyright (C) 2010-2011  Roel van Dijk
 
@@ -27,8 +27,7 @@
 
 ;;;###autoload
 (defun turn-on-haskell-unicode-input-method ()
-  "Set input method `haskell-unicode'.
-See Info node `Unicode(haskell-mode)' for more details."
+  "Set input method `haskell-unicode'."
   (interactive)
   (set-input-method "haskell-unicode"))
 

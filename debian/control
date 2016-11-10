@@ -5,7 +5,7 @@ Maintainer: Petr Rockai <mornfall@debian.org>
 Uploaders: Isaac Jones <ijones@debian.org>,
 	   David Bremner <bremner@debian.org>,
 	   Barak A. Pearlmutter <bap@debian.org>
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper (>= 10),
 	emacs25 | emacs24 | emacs-snapshot,
 	texinfo
 Standards-Version: 3.9.8

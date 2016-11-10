@@ -1,7 +1,8 @@
-;;; haskell-decl-scan.el --- Declaration scanning module for Haskell Mode
+;;; haskell-decl-scan.el --- Declaration scanning module for Haskell Mode -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2004, 2005, 2007, 2009  Free Software Foundation, Inc.
 ;; Copyright (C) 1997-1998  Graeme E Moss
+;; Copyright (C) 2016  Chris Gregory
 
 ;; Author: 1997-1998 Graeme E Moss <gem@cs.york.ac.uk>
 ;; Maintainer: Stefan Monnier <monnier@gnu.org>
@@ -36,9 +37,9 @@
 ;; To turn declaration scanning on for all Haskell buffers under the
 ;; Haskell mode of Moss&Thorn, add this to .emacs:
 ;;
-;;    (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
+;;    (add-hook 'haskell-mode-hook 'haskell-decl-scan-mode)
 ;;
-;; Otherwise, call `turn-on-haskell-decl-scan'.
+;; Otherwise, call `haskell-decl-scan-mode'.
 ;;
 ;;
 ;; Customisation:
@@ -105,6 +106,7 @@
 (require 'syntax)
 (require 'imenu)
 
+;;;###autoload
 (defgroup haskell-decl-scan nil
   "Haskell declaration scanning (`imenu' support)."
   :link '(custom-manual "(haskell-mode)haskell-decl-scan-mode")
@@ -343,16 +345,85 @@ declaration by this function.  So, if point is within a top-level
 declaration then move it to the start of that declaration.  If point
 is already at the start of a top-level declaration, then move it to
 the start of the preceding declaration.  Returns point if point is
-left at the start of a declaration, and nil otherwise, ie. because
+left at the start of a declaration, and nil otherwise, because
 point is at the beginning of the buffer and no declaration starts
 there."
   (interactive)
   (haskell-ds-move-to-decl nil (haskell-ds-bird-p) nil))
 
+(defun haskell-ds-comment-p
+    (&optional
+     pt)
+  "Test if the cursor is on whitespace or a comment.
+
+`PT' defaults to `(point)'"
+  ;; ensure result is `t' or `nil' instead of just truthy
+  (if (or
+       ;; is cursor on whitespace
+       (let ((f (following-char)))
+         (or (= f ?\t)
+             (= f ?\n)
+             (= f ? )))
+       ;; http://emacs.stackexchange.com/questions/14269/how-to-detect-if-the-point-is-within-a-comment-area
+       ;; is cursor at begging, inside, or end of comment
+       (let ((fontfaces (get-text-property (or pt
+                                               (point)) 'face)))
+         (when (not (listp fontfaces))
+           (setf fontfaces (list fontfaces)))
+         (delq nil (mapcar
+                    #'(lambda (f)
+                        (or (eq f 'font-lock-comment-face)
+                            (eq f 'font-lock-comment-delimiter-face)))
+                    fontfaces))))
+      t
+    nil))
+
+(defun haskell-ds-line-commented-p ()
+  "Tests if all characters from `point' to `end-of-line' pass
+`haskell-ds-comment-p'"
+  (let ((r t))
+    (while (and r (not (eolp)))
+      (if (not (haskell-ds-comment-p))
+          (setq r nil))
+      (forward-char))
+    r))
+
 (defun haskell-ds-forward-decl ()
-  "As `haskell-ds-backward-decl' but forward."
+  "Move forward to the first character that starts a top-level
+declaration.  As `haskell-ds-backward-decl' but forward."
   (interactive)
-  (haskell-ds-move-to-decl t (haskell-ds-bird-p) nil))
+  (let ((p (point)) b e empty was-at-bob)
+    ;; Go back to beginning of defun, then go to beginning of next
+    (haskell-ds-move-to-decl nil (haskell-ds-bird-p) nil)
+    (setq b (point))
+    (haskell-ds-move-to-decl t (haskell-ds-bird-p) nil)
+    (setq e (point))
+    ;; tests if line is empty
+    (setq empty (and (<= (point) p)
+                     (not (eolp))))
+    (setq was-at-bob (and (= (point-min) b)
+                          (= b p)
+                          (< p e)))
+    ;; this conditional allows for when empty lines at end, first
+    ;; `C-M-e' will go to end of defun, next will go to end of file.
+    (when (or was-at-bob
+              empty)
+      (if (or (and was-at-bob
+                   (= ?\n
+                      (save-excursion
+                        (goto-char (point-min))
+                        (following-char))))
+              empty)
+          (haskell-ds-move-to-decl t (haskell-ds-bird-p) nil))
+      ;; Then go back to end of current
+      (forward-line -1)
+      (while (and (haskell-ds-line-commented-p)
+                  ;; prevent infinite loop
+                  (not (= (point)
+                          (point-min))))
+        (forward-line -1))
+      (forward-line 1)))
+  (point))
 
 (defun haskell-ds-generic-find-next-decl (bird-literate)
   "Find the name, position and type of the declaration at or after point.
@@ -488,15 +559,24 @@ datatypes) in a Haskell file for the `imenu' package."
                  (name (car name-posns))
                  (posns (cdr name-posns))
                  (start-pos (car posns))
-                 (type (cdr result))
+                 (type (cdr result)))
                  ;; Place `(name . start-pos)' in the correct alist.
-                 (sym (cdr (assq type
-                                 '((variable . index-var-alist)
-                                   (datatype . index-type-alist)
-                                   (class . index-class-alist)
-                                   (import . index-imp-alist)
-                                   (instance . index-inst-alist))))))
-            (set sym (cons (cons name start-pos) (symbol-value sym))))))
+                 (cl-case type
+                   (variable
+                    (setq index-var-alist
+                          (cl-acons name start-pos index-var-alist)))
+                   (datatype
+                    (setq index-type-alist
+                          (cl-acons name start-pos index-type-alist)))
+                   (class
+                    (setq index-class-alist
+                          (cl-acons name start-pos index-class-alist)))
+                   (import
+                    (setq index-imp-alist
+                          (cl-acons name start-pos index-imp-alist)))
+                   (instance
+                    (setq index-inst-alist
+                          (cl-acons name start-pos index-inst-alist)))))))
     ;; Now sort all the lists, label them, and place them in one list.
     (message "Sorting declarations in %s..." bufname)
     (when index-type-alist
@@ -542,6 +622,9 @@ datatypes) in a Haskell file for the `imenu' package."
   "Unconditionally activate `haskell-decl-scan-mode'."
   (interactive)
   (haskell-decl-scan-mode))
+(make-obsolete 'turn-on-haskell-decl-scan
+               'haskell-decl-scan-mode
+               "2015-07-23")
 
 ;;;###autoload
 (define-minor-mode haskell-decl-scan-mode
@@ -590,10 +673,8 @@ Invokes `haskell-decl-scan-mode-hook' on activation."
       (local-set-key [menu-bar index] nil)))
 
   (when haskell-decl-scan-mode
-    (set (make-local-variable 'beginning-of-defun-function)
-         'haskell-ds-backward-decl)
-    (set (make-local-variable 'end-of-defun-function)
-         'haskell-ds-forward-decl)
+    (setq-local beginning-of-defun-function 'haskell-ds-backward-decl)
+    (setq-local end-of-defun-function 'haskell-ds-forward-decl)
     (haskell-ds-imenu)))
 
 

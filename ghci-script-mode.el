@@ -1,4 +1,4 @@
-;;; ghci-script-mode.el --- GHCi scripts major mode
+;;; ghci-script-mode.el --- GHCi scripts major mode -*- lexical-binding: t -*-
 
 ;; Copyright (c) 2014 Chris Done. All rights reserved.
 
@@ -30,23 +30,22 @@
 ;;;###autoload
 (define-derived-mode ghci-script-mode text-mode "GHCi-Script"
   "Major mode for working with .ghci files."
-  (set (make-local-variable 'adaptive-fill-mode) nil)
-  (set (make-local-variable 'comment-start) "-- ")
-  (set (make-local-variable 'comment-padding) 0)
-  (set (make-local-variable 'comment-start-skip) "[-{]-[ \t]*")
-  (set (make-local-variable 'comment-end) "")
-  (set (make-local-variable 'comment-end-skip) "[ \t]*\\(-}\\|\\s>\\)")
-  (set (make-local-variable 'indent-line-function) 'haskell-mode-suggest-indent-choice)
-  (set (make-local-variable 'font-lock-defaults)
-       '(ghci-script-mode-keywords t t nil nil))
-  (set (make-local-variable 'indent-tabs-mode) nil)
-  (set (make-local-variable 'tab-width) 8)
+  (setq-local adaptive-fill-mode nil)
+  (setq-local comment-start "-- ")
+  (setq-local comment-padding 0)
+  (setq-local comment-start-skip "[-{]-[ \t]*")
+  (setq-local comment-end "")
+  (setq-local comment-end-skip "[ \t]*\\(-}\\|\\s>\\)")
+  (setq-local indent-line-function 'haskell-mode-suggest-indent-choice)
+  (setq-local font-lock-defaults '(ghci-script-mode-keywords t t nil nil))
+  (setq-local indent-tabs-mode nil)
+  (setq-local tab-width 8)
   (when (boundp 'electric-indent-inhibit)
     (setq electric-indent-inhibit t))
-  (set (make-local-variable 'dabbrev-case-fold-search) nil)
-  (set (make-local-variable 'dabbrev-case-distinction) nil)
-  (set (make-local-variable 'dabbrev-case-replace) nil)
-  (set (make-local-variable 'dabbrev-abbrev-char-regexp) "\\sw\\|[.]")
+  (setq-local dabbrev-case-fold-search nil)
+  (setq-local dabbrev-case-distinction nil)
+  (setq-local dabbrev-case-replace nil)
+  (setq-local dabbrev-abbrev-char-regexp "\\sw\\|[.]")
   (setq haskell-literate nil))
 
 ;;;###autoload
@@ -55,8 +54,8 @@
 (define-key ghci-script-mode-map (kbd "C-c C-l") 'ghci-script-mode-load)
 
 (defun ghci-script-mode-load ()
-  (interactive)
   "Load the current script file into the GHCi session."
+  (interactive)
   (let ((buffer (haskell-session-interactive-buffer (haskell-session)))
         (filename (buffer-file-name)))
     (save-buffer)

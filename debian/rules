@@ -3,34 +3,7 @@
 %:
 	dh $@
 
-version=$(shell dpkg-parsechangelog | sed -rne 's/^Version: ([0-9.-]+)$$/\1/p')
-git_version=00000000
-
-gitver=VERSION=$(version) GIT_VERSION=$(git_version)
-
-override_dh_auto_clean:
-	dh_auto_clean -- $(gitver)
-
-override_dh_auto_build:
-	dh_auto_build -- $(gitver) haskell-mode-autoloads.el haskell-mode.info
-
 override_dh_auto_install:
-
-override_dh_auto_test:
-	@echo skipping test
-#	dh_auto_test -- $(gitver)
-
-dest_dir=debian/haskell-mode
-icon_dir=usr/share/icons/locolor/scalable
-
-override_dh_install:
-	dh_install
-	sed --in-place \
-	 -e 's/@VERSION@/$(version)/g' \
-	 -e 's/@GIT_VERSION@/$(git_version)/g' \
-	 debian/haskell-mode/usr/share/emacs/site-lisp/haskell-mode/*.el
-	mkdir --parent $(dest_dir)/$(icon_dir)
-	install --mode=a+r,u+w logo.svg $(dest_dir)/$(icon_dir)/haskell.svg
 
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS

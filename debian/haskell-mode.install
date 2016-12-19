@@ -1,1 +1,2 @@
 *.el /usr/share/emacs/site-lisp/haskell-mode
+logo.svg /usr/share/icons/locolor/scalable

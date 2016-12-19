@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 %:
-	dh $@ --parallel
+	dh $@
 
 version=$(shell dpkg-parsechangelog | sed -rne 's/^Version: ([0-9.-]+)$$/\1/p')
 git_version=00000000

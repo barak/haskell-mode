@@ -12,10 +12,10 @@ standard documentation directory under the name changelog.gz.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/haskell-mode.el b/haskell-mode.el
-index cac35a6..46a412e 100644
+index dc1c854..8de20b9 100644
 --- a/haskell-mode.el
 +++ b/haskell-mode.el
-@@ -163,7 +163,7 @@ With prefix argument HERE, insert it at point."
+@@ -171,7 +171,7 @@ With prefix argument HERE, insert it at point."
  (defun haskell-mode-view-news ()
    "Display information on recent changes to haskell-mode."
    (interactive)

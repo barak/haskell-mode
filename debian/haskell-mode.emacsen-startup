@@ -3,7 +3,9 @@
 ;;
 
 (let ((package-dir (concat "/usr/share/"
-			   (symbol-name flavor)
+			   (if (boundp 'debian-emacs-flavor)
+			       (symbol-name debian-emacs-flavor)
+			     "emacs")
 			   "/site-lisp/haskell-mode")))
   (debian-pkg-add-load-path-item package-dir))
 

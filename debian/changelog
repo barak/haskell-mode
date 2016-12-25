@@ -1,3 +1,10 @@
+haskell-mode (16.1-2) unstable; urgency=medium
+
+  * Remove old uploaders, add pkg-emacen team (closes: #838127, #849063)
+  * Suggest stylish-haskell (closes: #825485)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 25 Dec 2016 11:04:07 +0000
+
 haskell-mode (16.1-1) unstable; urgency=medium
 
   * New upstream release

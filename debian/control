@@ -3,7 +3,6 @@ Section: haskell
 Priority: optional
 Maintainer: Debian Emacs addons team <pkg-emacsen-addons@lists.alioth.debian.org>
 Uploaders: Barak A. Pearlmutter <bap@debian.org>,
-	   Isaac Jones <ijones@debian.org>,
 	   David Bremner <bremner@debian.org>
 Build-Depends: debhelper (>= 10),
 	install-info,

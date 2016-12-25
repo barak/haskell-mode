@@ -1,13 +1,13 @@
 Source: haskell-mode
 Section: haskell
 Priority: optional
-Maintainer: Petr Rockai <mornfall@debian.org>
-Uploaders: Isaac Jones <ijones@debian.org>,
-	   David Bremner <bremner@debian.org>,
-	   Barak A. Pearlmutter <bap@debian.org>
+Maintainer: Debian Emacs addons team <pkg-emacsen-addons@lists.alioth.debian.org>
+Uploaders: Barak A. Pearlmutter <bap@debian.org>,
+	   Isaac Jones <ijones@debian.org>,
+	   David Bremner <bremner@debian.org>
 Build-Depends: debhelper (>= 10),
 	install-info,
-	emacs25 | emacs24 | emacs-snapshot,
+	emacs | emacs25 | emacs24 | emacs-snapshot,
 	texinfo
 Standards-Version: 3.9.8
 Homepage: https://github.com/haskell/haskell-mode

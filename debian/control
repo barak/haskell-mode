@@ -16,6 +16,7 @@ Vcs-Browser: https://anonscm.debian.org/gitweb/?p=collab-maint/haskell-mode.git
 Package: haskell-mode
 Architecture: all
 Depends: emacs25 | emacs24 | emacs-snapshot | emacs, ${misc:Depends}
+Suggests: stylish-haskell
 Breaks: agda-mode (<< 2.3.2)
 Recommends: ghc | hugs
 Description: major mode for editing Haskell in Emacs

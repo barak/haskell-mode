@@ -2,13 +2,12 @@ Source: haskell-mode
 Section: haskell
 Priority: optional
 Maintainer: Debian Emacs addons team <pkg-emacsen-addons@lists.alioth.debian.org>
-Uploaders: Barak A. Pearlmutter <bap@debian.org>,
-	   David Bremner <bremner@debian.org>
+Uploaders: Barak A. Pearlmutter <bap@debian.org>
 Build-Depends: debhelper (>= 10),
 	install-info,
 	emacs | emacs25 | emacs24 | emacs-snapshot,
 	texinfo
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Homepage: https://github.com/haskell/haskell-mode
 Vcs-Git: git://anonscm.debian.org/collab-maint/haskell-mode.git
 Vcs-Browser: https://anonscm.debian.org/gitweb/?p=collab-maint/haskell-mode.git

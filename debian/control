@@ -9,8 +9,8 @@ Build-Depends: debhelper (>= 10),
 	texinfo
 Standards-Version: 4.0.0
 Homepage: https://github.com/haskell/haskell-mode
-Vcs-Git: git://anonscm.debian.org/collab-maint/haskell-mode.git
-Vcs-Browser: https://anonscm.debian.org/gitweb/?p=collab-maint/haskell-mode.git
+Vcs-Git: https://anonscm.debian.org/git/collab-maint/haskell-mode.git
+Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/haskell-mode.git
 
 Package: haskell-mode
 Architecture: all

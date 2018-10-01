@@ -1,7 +1,11 @@
 haskell-mode (16.1-4) UNRELEASED; urgency=medium
 
+  [ David Bremner ]
   * Team upload
   * Update Vcs-*
+
+  [ Ondřej Nový ]
+  * d/changelog: Remove trailing whitespaces
 
  -- David Bremner <bremner@debian.org>  Tue, 04 Jul 2017 08:45:38 -0300
 
@@ -183,24 +187,24 @@ haskell-mode (2.0-1) unstable; urgency=low
 
   * keybindings C-c <char> have been replaced by C-c C-<char> so as not to
     collide with minor modes.
-  
+
   * The following modules are now automatically activated without having
     to add anything to haskell-mode-hook: haskell-font-lock (just turn on
     global-font-lock-mode).  haskell-decl-scan (just bind `imenu' to some
     key).
-  
+
   * In recent Emacsen, haskell-doc hooks into eldoc-mode.
-  
+
   * haskell-hugs and haskell-ghci are superceded by inf-haskell.
-  
+
   * Indentation rules have been improved when using layout inside parens/braces.
-  
+
   * Symbols like -> and \ can be displayed as actual arrows and lambdas.
     See haskell-font-lock-symbols.
-  
+
   * Tweaks to the font-lock settings.  Among other things paren-matching
     with things like \(x,y) should work correctly now.
-  
+
   * New upstream maintainer <monnier@gnu.org>.
 
  -- Isaac Jones <ijones@debian.org>  Wed, 22 Dec 2004 02:14:02 -0500
